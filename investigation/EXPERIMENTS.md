@@ -6805,3 +6805,116 @@ reported the desktop stable and smooth and authorized publication.  This exact
 both/monitor assisted candidate is therefore the new eight-core recovery
 checkpoint; the ESP was not modified and standalone cold-boot qualification
 remains a separate gate.
+
+## EXP-20261011-J413-001 — host-only M2 firmware and research checkpoint
+
+Ledger timing correction: this entry is appended after the host build. The
+before-build ledger update required by AGENTS.md was missed; no hardware launch
+or installation occurred. The commands, source pins, output hash and preserved
+logs below record the actual result without claiming a prospective entry.
+
+Intent: test whether a distinct J413 Mu platform can compile while preserving
+the J313 baseline, and whether an AIC2 physical IRQ can be translated into the
+existing guest namespace without changing the M1 route. This is a software
+checkpoint with several independently host-tested changes, not a combined
+hardware experiment.
+
+Source and environment:
+
+- repository `Liamsitbon/windows-on-m2-air`, branch `main`, clean-fork root base
+  `1a247525175fce61484e75e0915adc452475a0c2`;
+- pinned m1n1 `9cd80ac652ac404e92ae279deeaec8c629d7d184`, with only the two
+  root-tracked J413 patches applied; binary diff SHA-256
+  `8224428a9b7ac79d69fc6de504f055aa188595546e1d78d0c59fe8a780c4f51c`;
+- pinned Mu `8b4dc4b4e3ff8606d0af36163acf9de79b7b4737`; tracked upstream
+  files unchanged; staged new overlay SHA-256
+  `3778d5e814072dd92e5336e326419d89f8f820c80026eae71b35ebafc58e54d5`;
+- host Mac14,2/T8112, macOS 27.0 build 26A5425a; Docker native Linux ARM64,
+  Ubuntu 24.04, Python 3.12, Clang 18.1.3 for Mu;
+- root source changes were uncommitted during the build. The source overlay
+  hash identifies the actual firmware input. The final implementation commits
+  are linked in CHANGES.csv; they do not retroactively become the build-time HEAD.
+
+Executed commands:
+
+```sh
+python3 tools/collect_j413.py
+python3 tools/j413_platform.py --stage-m1n1
+make -C m1n1_windows host-tests CC=/usr/bin/clang
+scripts/build-j413-firmware.sh
+python3 tools/analyze_kext.py --target-j413 --resume \
+  --kernel-macho .local/kext-research/BootKernelCollection.kc
+python3 -m unittest discover -s tests
+```
+
+Observed build result: completed at 2026-10-11 04:20:26 UTC, Mu build duration
+2m17s, 97 EFI PE/COFF images accepted by the build verifier. Output
+`dist/j413/firmware-debug/J413_EFI.fd`, 30,965,760 bytes, SHA-256
+`ba6644179892cf84a9fd0ad5bf55ab66b635a79463c880ff6224dcd0fa114800`.
+The DEBUG/physical/uart manifest was subsequently regenerated to include the
+mandatory J413 overlay hash; the firmware bytes were not rebuilt or relabelled
+as hardware-qualified. Preserved log `.local/j413-firmware-build.log`, SHA-256
+`e1a444107e70006039235a17e96e05e1f2d94be69e6964e0ccf879889218f992`.
+
+Direct compiled-MADT inspection found eight enabled UIDs, correct J413 4E/4P
+MPIDRs and classes, and 64-bit virtual redistributor base `0xf10000000` with
+length `0x100000`. Raw compiler-table checksum is not an installed ACPI checksum.
+All m1n1 host tests passed, including M1/M2 route selection, physical-capacity
+bounds and reverse EOI. Log `.local/m1n1-host-tests.log`, SHA-256
+`deb9ba52c5e6887b2b59bae186c6d16f4b6fe91231ea93de79d36bcb731db88e`.
+
+Read-only bundle research inventoried 27 bundles and 41,172 symbol entries.
+Apple binaries remain local. Native kmutil emitted a valid boot Mach-O, then
+returned 71 for missing auxiliary/system paths; no complete export is claimed.
+Collection SHA-256 and actual DockChannel disassembly findings are recorded in
+`documentation/reverse-engineering/`. Fake-FIFO tests validate portable transfer
+semantics and bounded calls, not hardware access or a Windows driver.
+
+Hardware result: not run. No Windows stop code, boot phase, live Windows input,
+USB/DMA, storage, CPU startup, GPU job, audio, networking or suspend/resume result
+exists for this J413 checkpoint. No boot entry, ESP, partition or boot policy
+was changed. macOS remains the unchanged recovery state; the firmware component
+is not an installable boot.bin. With only the target Air, the original
+second-host assisted recovery/logging contract is unavailable.
+
+Verdict: host build and software contracts confirmed; native M2 Windows boot
+and drivers remain inconclusive/unqualified. Before the next hardware
+experiment, qualify live reservation placement, physical-resource translation,
+logging and a reversible recovery path. Do not enable device DMA on the strength
+of this build alone. See documentation/J413_STATUS.md for layer ownership and
+primary sources.
+
+## EXP-20261011-J413-002 — correct inherited UART ACPI IRQ
+
+Before build, 2026-10-11 04:37 UTC: a final ACPI review found that COM0 retained
+physical IRQ 1097 from the M1 template. Live J413 ADT and independently inspected
+Asahi `t8112.dtsi` serial@235200000 agree on AIC IRQ **739**. Correct only that
+functional descriptor; clean copied-source trailing whitespace and stale
+comments without changing other functional fields. Add a regression comparing
+the sanitized capture and DSDT. The guest fallback ID is within 0..1019; actual
+UART attachment/interrupt delivery is still unqualified.
+
+Root/m1n1/Mu pins and recovery state remain those of EXP-20261011-J413-001.
+The overlay hash before/after and final firmware hash will be recorded after the
+build. Command: `scripts/build-j413-firmware.sh`, native ARM64 Docker, DEBUG
+physical/uart manifest. Evidence: `.local/j413-firmware-build-002.log`.
+Expected result: host firmware compilation and new descriptor succeeds; failure
+criterion: ACPI/build/manifest rejection. No hardware launch/install command is
+planned, and no partition or boot state will be changed.
+
+After build, 2026-10-11 04:39:03 UTC: the incremental Mu build completed in
+13 seconds and passed PE/COFF validation. Final overlay SHA-256
+`f129ef244f49ccdfe93d6a33d4ab753dc6f9dc76841e7e47b1ed24fa7f818973`.
+Firmware `dist/j413/firmware-debug/J413_EFI.fd`, SHA-256
+`12409354b231ab22dd3d2c80982d8eb2da8ebcc1a16fdf75e13cbe1983f6098c`.
+The J413 DEBUG/physical/uart manifest and guest-firmware role verified. Build
+log SHA-256 `ba1a98f2e066d6ac91137ad2ecce34c3d4b080480b00f592ddd81de6dc4a5988`.
+Build-time root indexed/tracked diff SHA-256 from the manifest: `56d7a3b89e33bfdb34dd405e6a6337407029d30afa3770bc2f266e96ddfea678`.
+
+The updated UART descriptor regression passed; the complete root suite ran
+313 tests, with one expected skip, and passed. The already successful full
+m1n1 host suite remains applicable: its source has not changed since EXP001.
+No hardware was launched. Verdict: corrected descriptor and host firmware build
+confirmed; physical UART and every J413 Windows runtime contract unqualified.
+The next hardware experiment and recovery requirements are unchanged.
+Final root test log SHA-256: `9741ac8524d351b50891cf8522a2224ff40ce8b2da47f5245504a7c820de6d1b`.

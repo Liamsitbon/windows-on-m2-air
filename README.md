@@ -1,4 +1,22 @@
-# Windows 11 ARM64 on the M1 MacBook Air
+# Windows ARM64 on the MacBook Air M2 — J413 development
+
+This fork adds an experimental **Mac14,2 / T8112 / J413** firmware target and
+local hardware research to the original M1 project. The J413 UEFI component
+builds, exposes eight CPU entries and a 2560×1664 framebuffer contract, and has
+host-tested AIC2 IRQ routing patches. **Windows boot, G14G GPU acceleration and
+built-in M2 input have not been qualified.** The firmware component is not an
+installable boot image.
+
+Start with [J413 status and build instructions](documentation/J413_STATUS.md)
+and [organized local kext research](documentation/reverse-engineering/README.md).
+The research includes an inventory of 27 Apple bundles, instruction-level
+DockChannel findings, an extraction tool and a tested portable FIFO core.
+
+## Original upstream M1 checkpoint
+
+The following historical status describes the upstream M1 (`j313`) platform;
+it does not establish M2 compatibility. Upstream GPU work lives on its separate
+M1 branch, whose exact source pins are recorded in the J413 status guide.
 
 Experimental native Windows boot for the 2020 M1 MacBook Air (`j313`, Apple T8103), built
 from a Project Mu firmware fork and an m1n1 EL2 hypervisor fork.

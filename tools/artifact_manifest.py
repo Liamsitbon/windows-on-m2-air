@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create and verify provenance manifests for J313 build artifacts."""
+"""Create and verify board-specific provenance for build artifacts."""
 
 from __future__ import annotations
 
@@ -20,12 +20,20 @@ J313_GUEST_CONTRACT = {
     "cpu_count": 8,
 }
 
+J413_GUEST_CONTRACT = {
+    **J313_GUEST_CONTRACT,
+    "virtual_fb_base": "0x85e000000",
+    "virtual_fb_height": 1664,
+}
+GUEST_CONTRACTS = {"j313": J313_GUEST_CONTRACT, "j413": J413_GUEST_CONTRACT}
+
 ARTIFACT_ROLES = {
     "boot.bin": "standalone-bootstrap",
     "m1n1-stage0.bin": "autonomous-stage0",
     "m1n1-stage1.bin": "autonomous-stage1",
     "m1n1.macho": "assisted-chainload",
     "J313_EFI.fd": "guest-firmware",
+    "J413_EFI.fd": "guest-firmware",
 }
 
 
@@ -82,6 +90,7 @@ def create_manifest(
     compiler: str,
     allow_dirty: bool = False,
     artifact_roles: dict[str, str] | None = None,
+    platform: str = "j313",
 ) -> Path:
     root = root.resolve()
     artifact_dir = artifact_dir.resolve()
@@ -91,14 +100,19 @@ def create_manifest(
         raise ManifestError("dirty source is allowed only for debug artifacts")
     if not compiler.strip():
         raise ManifestError("compiler identity is empty")
-    layout_path = root / "config" / "j313-guest-layout.json"
+    if platform not in GUEST_CONTRACTS:
+        raise ManifestError(f"unsupported platform: {platform}")
+    if platform == "j413" and profile != "debug":
+        raise ManifestError("J413 has no hardware-qualified release; use debug")
+    expected_contract = GUEST_CONTRACTS[platform]
+    layout_path = root / "config" / f"{platform}-guest-layout.json"
     try:
         layout = json.loads(layout_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ManifestError(f"cannot read guest layout: {layout_path}") from error
-    guest_contract = {key: layout.get(key) for key in J313_GUEST_CONTRACT}
-    if guest_contract != J313_GUEST_CONTRACT:
-        raise ManifestError("guest layout does not match the J313 release contract")
+    guest_contract = {key: layout.get(key) for key in expected_contract}
+    if guest_contract != expected_contract:
+        raise ManifestError(f"guest layout does not match the {platform} build contract")
     root_revision = _source_revision(root, allow_dirty=allow_dirty)
     revisions = {
         "root_commit": root_revision["commit"],
@@ -126,7 +140,7 @@ def create_manifest(
         artifacts[name] = record
     data = {
         "format_version": 2,
-        "platform": "j313",
+        "platform": platform,
         "profile": profile,
         "display": display,
         "debug": debug,
@@ -136,6 +150,16 @@ def create_manifest(
         **revisions,
         "artifacts": artifacts,
     }
+    if platform == "j413":
+        overlay_dir = root / "platforms/j413/mu"
+        if not overlay_dir.is_dir():
+            raise ManifestError("J413 firmware source overlay is missing")
+        digest = hashlib.sha256()
+        for source in sorted(overlay_dir.rglob("*")):
+            if source.is_file():
+                digest.update(source.relative_to(overlay_dir).as_posix().encode() + b"\0")
+                digest.update(source.read_bytes())
+        data["platform_overlay_sha256"] = digest.hexdigest()
     path = artifact_dir / "MANIFEST.json"
     temporary = path.with_suffix(".json.new")
     temporary.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -149,14 +173,22 @@ def verify_manifest(
     expected_roles: dict[str, str] | None = None,
     expected_display: str | None = None,
     expected_debug: str | None = None,
+    expected_platform: str | None = None,
 ) -> dict:
     path = path.resolve()
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ManifestError(f"cannot read manifest: {path}") from error
-    if data.get("format_version") != 2 or data.get("platform") != "j313":
+    platform = data.get("platform")
+    if data.get("format_version") != 2 or platform not in GUEST_CONTRACTS:
         raise ManifestError("unsupported artifact manifest")
+    if expected_platform is not None and platform != expected_platform:
+        raise ManifestError(f"platform mismatch: expected {expected_platform}, got {platform}")
+    if platform == "j413" and data.get("profile") != "debug":
+        raise ManifestError("J413 has no hardware-qualified release")
+    if platform == "j413" and len(data.get("platform_overlay_sha256", "")) != 64:
+        raise ManifestError("J413 firmware source overlay provenance is missing")
     if expected_profile is not None and data.get("profile") != expected_profile:
         raise ManifestError(
             f"profile mismatch: expected {expected_profile}, got {data.get('profile')}"
@@ -171,7 +203,7 @@ def verify_manifest(
         )
     if not data.get("compiler") or len(data.get("guest_layout_sha256", "")) != 64:
         raise ManifestError("incomplete artifact provenance")
-    if data.get("guest_contract") != J313_GUEST_CONTRACT:
+    if data.get("guest_contract") != GUEST_CONTRACTS[platform]:
         raise ManifestError("guest contract mismatch")
     for name, record in data.get("artifacts", {}).items():
         artifact = path.parent / name
@@ -198,12 +230,14 @@ def main() -> int:
     create.add_argument("--debug", required=True)
     create.add_argument("--compiler", required=True)
     create.add_argument("--allow-dirty", action="store_true")
+    create.add_argument("--platform", choices=tuple(GUEST_CONTRACTS), default="j313")
     create.add_argument("artifacts", nargs="+")
     verify = subparsers.add_parser("verify")
     verify.add_argument("manifest", type=Path)
     verify.add_argument("--profile", choices=("release", "debug"))
     verify.add_argument("--display")
     verify.add_argument("--debug")
+    verify.add_argument("--platform", choices=tuple(GUEST_CONTRACTS))
     verify.add_argument("--require-role", action="append", default=[], metavar="NAME=ROLE")
     args = parser.parse_args()
     try:
@@ -218,6 +252,7 @@ def main() -> int:
                     args.artifacts,
                     compiler=args.compiler,
                     allow_dirty=args.allow_dirty,
+                    platform=args.platform,
                 )
             )
         else:
@@ -232,6 +267,7 @@ def main() -> int:
             data = verify_manifest(
                 args.manifest, args.profile, roles,
                 expected_display=args.display, expected_debug=args.debug,
+                expected_platform=args.platform,
             )
             print(f"validated {data['platform']} {data['profile']} artifacts")
     except ManifestError as error:

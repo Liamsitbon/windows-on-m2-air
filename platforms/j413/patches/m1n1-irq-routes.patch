@@ -1,0 +1,110 @@
+diff --git a/src/hv.c b/src/hv.c
+index 210403b..eb77308 100644
+--- a/src/hv.c
++++ b/src/hv.c
+@@ -175,6 +175,11 @@ static void hv_configure_guest_wfi(void)
+ 
+ bool hv_init(void)
+ {
++    /* Use the initialized AIC capacity, never a guessed physical IRQ limit. */
++    if (chip_id == T8112 && (!aic || !hv_irq_routes_configure(chip_id, aic->nr_irq))) {
++        printf("HV: invalid T8112 AIC2 IRQ contract\n");
++        return false;
++    }
+     hv_diag_reset();
+     hv_diag_set_collector(hv_collect_diag, NULL);
+     hv_fb_stream_disable(&hv_framebuffer_stream);
+diff --git a/src/hv_irq_routes.c b/src/hv_irq_routes.c
+index b99fa48..45b89b8 100644
+--- a/src/hv_irq_routes.c
++++ b/src/hv_irq_routes.c
+@@ -9,12 +9,31 @@
+  * handoff explicit even when a route currently uses the same number in both.
+  * usb-drd1 is the Type-C port not occupied by the m1n1 proxy on J313.
+  */
+-static const struct hv_irq_route routes[] = {
++static struct hv_irq_route routes[] = {
+     {.hw_irq = 857, .vintid = 857, .level = true},
+ };
+ 
+ static struct hv_irq_route dynamic_routes[HV_IRQ_DYNAMIC_ROUTE_CAPACITY];
+ static size_t dynamic_route_count;
++static u32 physical_irq_count = 1020;
++
++/* AIC2 physical IDs and guest GIC IDs are distinct namespaces. */
++bool hv_irq_routes_configure(u32 chip, u32 irq_count)
++{
++    u32 usb_irq;
++    if (chip == 0x8103)
++        usb_irq = 857;
++    else if (chip == 0x8112)
++        usb_irq = 1112;
++    else
++        return false;
++    if (irq_count <= usb_irq)
++        return false;
++    routes[0].hw_irq = usb_irq;
++    physical_irq_count = irq_count;
++    hv_irq_routes_reset_dynamic();
++    return true;
++}
+ 
+ size_t hv_irq_route_count(void)
+ {
+@@ -58,7 +77,7 @@ bool hv_irq_route_resolve_incoming(u32 hw_irq, u32 reserved_vintid, u32 *vintid)
+     const struct hv_irq_route *route = hv_irq_route_from_hw(hw_irq);
+     u32 candidate = route ? route->vintid : hw_irq;
+ 
+-    if (!vintid || candidate == reserved_vintid)
++    if (!vintid || candidate > 1019 || candidate == reserved_vintid)
+         return false;
+ 
+     *vintid = candidate;
+@@ -78,7 +97,7 @@ bool hv_irq_route_level_eoi_target(u32 vintid, bool enabled, u32 *hw_irq)
+ 
+ bool hv_irq_route_register(u32 hw_irq, u32 vintid, bool level)
+ {
+-    if (hw_irq < 32 || hw_irq > 1019 || vintid < 32 || vintid > 1019 ||
++    if (hw_irq < 32 || hw_irq >= physical_irq_count || vintid < 32 || vintid > 1019 ||
+         vintid == HV_IRQ_SYNTHETIC_NVME_VINTID ||
+         dynamic_route_count >= HV_IRQ_DYNAMIC_ROUTE_CAPACITY ||
+         hv_irq_route_from_hw(hw_irq) || hv_irq_route_from_vintid(vintid))
+diff --git a/src/hv_irq_routes.h b/src/hv_irq_routes.h
+index 4c73d46..86fea25 100644
+--- a/src/hv_irq_routes.h
++++ b/src/hv_irq_routes.h
+@@ -23,6 +23,7 @@ struct hv_irq_route {
+ 
+ const struct hv_irq_route *hv_irq_route_from_hw(u32 hw_irq);
+ const struct hv_irq_route *hv_irq_route_from_vintid(u32 vintid);
++bool hv_irq_routes_configure(u32 chip, u32 irq_count);
+ size_t hv_irq_route_count(void);
+ const struct hv_irq_route *hv_irq_route_at(size_t index);
+ bool hv_irq_route_resolve_incoming(u32 hw_irq, u32 reserved_vintid, u32 *vintid);
+diff --git a/tests/hv_irq_routes_test.c b/tests/hv_irq_routes_test.c
+index 97c2de7..7e4f019 100644
+--- a/tests/hv_irq_routes_test.c
++++ b/tests/hv_irq_routes_test.c
+@@ -63,6 +63,22 @@ int main(void)
+     assert(hv_irq_route_count() == 1);
+     assert(hv_irq_route_from_hw(333) == NULL);
+ 
++    assert(hv_irq_routes_configure(0x8112, 2048));
++    assert(hv_irq_route_from_hw(857) == NULL);
++    assert(hv_irq_route_from_hw(1112)->vintid == 857);
++    assert(hv_irq_route_resolve_incoming(1112, 64, &vintid));
++    assert(vintid == 857);
++    assert(hv_irq_route_level_eoi_target(857, true, &hw_irq));
++    assert(hw_irq == 1112);
++    assert(!hv_irq_route_resolve_incoming(1113, 64, &vintid));
++    assert(hv_irq_route_register(1500, 866, true));
++    assert(!hv_irq_route_register(2048, 867, true));
++    assert(!hv_irq_routes_configure(0x8112, 1112));
++    assert(!hv_irq_routes_configure(0x6000, 2048));
++    assert(hv_irq_route_from_hw(1112)->vintid == 857);
++    assert(hv_irq_routes_configure(0x8103, 1020));
++    assert(hv_irq_route_from_hw(857)->vintid == 857);
++    assert(hv_irq_route_count() == 1);
+     puts("hv_irq_routes_test: ok");
+     return 0;
+ }
