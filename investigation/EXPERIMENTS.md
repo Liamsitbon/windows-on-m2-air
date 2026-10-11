@@ -6973,3 +6973,46 @@ boot remains unqualified and unattempted. Main blockers are the absent J413
 autonomous launch contract and uninspected active internal ESP. The external
 SSD has not been deployed with the prepared FAT32 filesystem. No claim of a
 Windows boot logo, kernel, Setup UI, USB runtime or installed OS is made.
+
+## EXP-20261011-J413-004 — diagnose existing internal ESP, read only
+
+Timing correction: the initial diskutil verifyVolume command below was run
+before this entry was appended. It used fsck_msdos -n; no repair occurred.
+The user supplied a failed administrator read-only mount of observed disk0s4.
+The device remains the 500170752-byte internal EFI - UEFI partition. Verification
+completed all three phases, reported 176 files and 343580 KiB free, and returned
+filesystem-check code 0. It requested marking the filesystem clean, answered
+no under -n, and left the dirty flag set. That flag alone does not establish
+structural corruption or explain the mount failure conclusively.
+
+Root main is 604716d67682fb1e04a7bf99d6ade517172060cb; m1n1/Mu pins and local
+staged patches/overlay remain unchanged from EXP002. No native Windows launch
+has been attempted. Current macOS and both physical disks are unchanged by this
+read-only inspection.
+
+Next diagnostic: attempt a read-only local image capture of this one partition
+with hdiutil create -srcdevice /dev/disk0s4 -format UDRO into a new ignored
+.local/esp-audit/ path. Expected checkpoint: preserved copy with exact byte
+identity for offline inspection. Failure criterion: access denial or failed
+read; do not repair, format, change boot policy or touch the partition map.
+Evidence will remain under .local/esp-audit/. If authentication prevents capture,
+request only the administrator read needed to copy the partition. An image copy
+can be inspected separately without mutating the original ESP.
+
+After diagnostic, 2026-10-11 05:05 UTC: the administrator mount failure is
+user-observed. The read-only verifyVolume result establishes check exit code 0
+and an uncleared dirty flag, not a diagnosed cause for the mount failure.
+A filtered unified-log query returned no matching records. DiskImages capture
+produced neither image nor log output and remained blocked; the initiating
+hdiutil process was stopped (exit 137), and its remaining matching helper was
+sent TERM. No image, hash or successful capture is claimed. No repair, writable
+mount, partition change or Windows boot occurred. This experiment is inconclusive
+on the mount cause; the FAT32 structure check found no reported structural errors.
+
+Next read-only checkpoint, pending user execution: copy the observed partition
+via /bin/dd with if=/dev/rdisk0s4 and bs=4m. Redirect standard output as the normal
+user to a new .local/esp-audit/internal-esp-20261011-0505.img regular file, with
+shell noclobber enabled to refuse overwriting an existing file. Only the dd reader
+runs under sudo; no output device argument is used. Expected file size is
+500170752 bytes. Do not mount or modify the source; validate size and SHA-256
+before offline inspection. This capture is not yet executed or successful.
