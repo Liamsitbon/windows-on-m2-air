@@ -257,6 +257,13 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
   INF MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
   INF FatPkg/EnhancedFatDxe/Fat.inf
+  # Separate GPLv3+ read-only EfiFs driver, verified by prepare_j413_exfat.py.
+  # Embedding avoids requiring a keyboard to load it from the Shell.
+  FILE DRIVER = 9F4D7BC1-6846-4A34-A997-E91F058D84A2 {
+    SECTION DXE_DEPEX = Platform/MacBookAirM2Pkg/ExternalDrivers/exfat.depex
+    SECTION PE32 = Platform/MacBookAirM2Pkg/ExternalDrivers/exfat_aa64.efi
+    SECTION UI = "EfiFs ARM64 exFAT (read only)"
+  }
   INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
   INF MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
   INF AppleSiliconPkg/Drivers/BootRamdiskHelperDxe/BootRamdiskHelperDxe.inf
