@@ -78,12 +78,7 @@ esac
 
 if [ "$ACTION" = install ]; then
     [ -f "$IMAGE" ] || { echo "image not found: $IMAGE" >&2; exit 1; }
-    PYTHONPATH="$ROOT" python3 -c \
-        'import pathlib, sys; from bootstrap_image import parse_bootstrap; from standalone_image import parse_image; outer, inner = parse_bootstrap(pathlib.Path(sys.argv[1]).read_bytes()); nested, firmware = parse_image(inner); assert outer.flags == nested.flags' \
-        "$IMAGE"
-    MANIFEST=$(dirname "$IMAGE")/MANIFEST.json
-    [ -f "$MANIFEST" ] || { echo "artifact manifest not found: $MANIFEST" >&2; exit 1; }
-    python3 "$ROOT/tools/artifact_manifest.py" verify "$MANIFEST"
+    python3 "$ROOT/tools/verify_install_image.py" "$IMAGE"
 fi
 
 diskutil mount "$DISK" >/dev/null

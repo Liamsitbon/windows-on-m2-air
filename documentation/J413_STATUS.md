@@ -136,3 +136,5 @@ See J413_BOOT_EXPERIMENT.md for the current hash and existing ESP install comman
 No new physical UEFI or Windows success is claimed.
 
 EXP022 adds owning Mu USB initialization/DART validation and readiness fixes, plus DockChannel command matching and bounded HIDF firmware preparation. See [source defects and integration boundaries](J413_USB_DART_FIXES.md). Current artifact/runtime evidence is recorded in the experiment ledger; these additions have no new physical input or GPU result.
+
+Current preboot corrections: [BDS execution level, exact installer identity, offline dependency preparation and Setup preflight](J413_PREBOOT_HARDENING.md). J413 Windows selection now runs through application-level BDS instead of image services in notification callbacks; this supersedes the older callback launch path. Hardware result remains pending.

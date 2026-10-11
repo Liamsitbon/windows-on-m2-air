@@ -1,11 +1,12 @@
 diff --git a/Silicon/Apple/AppleSiliconPkg/AppleSiliconPkg.dec b/Silicon/Apple/AppleSiliconPkg/AppleSiliconPkg.dec
-index 2d14bfa..a8c45e5 100644
+index 2d14bfa..1bba9cc 100644
 --- a/Silicon/Apple/AppleSiliconPkg/AppleSiliconPkg.dec
 +++ b/Silicon/Apple/AppleSiliconPkg/AppleSiliconPkg.dec
-@@ -13,6 +13,7 @@
+@@ -13,6 +13,8 @@
    gAppleSiliconPkgEmbeddedUsbFirmwareGuid = { 0xd730ab59, 0x670e, 0x4a92, { 0x84, 0x75, 0xb3, 0x19, 0x39, 0xd0, 0x5b, 0xb4 } }
    
  [Protocols]
++  gJ413WindowsSetupProtocolGuid = { 0x96cda453, 0xf830, 0x4e50, { 0x88, 0xa4, 0xf4, 0x5e, 0xd9, 0x24, 0x61, 0x0b } }
 +  gJ413UsbDartReadyProtocolGuid = { 0xb85a7c91, 0x7a1b, 0x466e, { 0xa8, 0x4c, 0x2f, 0x95, 0x0b, 0xdf, 0x43, 0x11 } }
  
  [PcdsFixedAtBuild.common]

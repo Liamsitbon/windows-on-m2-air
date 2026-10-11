@@ -8,6 +8,10 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 REVISION = "bfc6ae29ac15516bddb97928eaf1eda187a6d242"
 SHA256 = "629e567847ba028cb6ba1f75af12b1ace2094a6b1e70cddbfe1a99a82cdd0511"
+NOTICE_SHA256 = {
+    "LICENSE": "fe3eea6c599e23a00c08c5f5cb2320c30adc8f8687db5fcec9b79a662c53ff6b",
+    "README.md": "066ede790708da8307bb0bec71095e922dcc5c2041ce030fd0de90f91252190d",
+}
 URL = "https://github.com/pbatard/EfiFs/releases/download/v1.12/exfat_aa64.efi"
 
 
@@ -37,15 +41,25 @@ def prepare(root=ROOT):
         with urllib.request.urlopen(URL, timeout=60) as response:
             data = response.read(53249)
     validate(data)
-    driver.write_bytes(data)
-    # UEFI dependency bytecode: PUSH TRUE (0x06), END (0x08).
-    (target / "exfat.depex").write_bytes(bytes([0x06, 0x08]))
     output = root / "dist/j413/third-party/efifs"
+    notices = {}
+    for name, digest in NOTICE_SHA256.items():
+        cached = output / name
+        if cached.exists():
+            notice = cached.read_bytes()
+        else:
+            with urllib.request.urlopen(f"https://raw.githubusercontent.com/pbatard/EfiFs/{REVISION}/{name}", timeout=60) as response:
+                notice = response.read(1024 * 1024)
+        if hashlib.sha256(notice).hexdigest() != digest:
+            raise ValueError(f"EfiFs {name} SHA-256 mismatch")
+        notices[name] = notice
+    # Publish only after the driver and all notices pass validation.
     output.mkdir(parents=True, exist_ok=True)
+    driver.write_bytes(data)
+    (target / "exfat.depex").write_bytes(bytes([0x06, 0x08]))
     (output / driver.name).write_bytes(data)
-    for name in ("LICENSE", "README.md"):
-        with urllib.request.urlopen(f"https://raw.githubusercontent.com/pbatard/EfiFs/{REVISION}/{name}", timeout=60) as response:
-            (output / name).write_bytes(response.read())
+    for name, notice in notices.items():
+        (output / name).write_bytes(notice)
     (output / "SOURCE.txt").write_text(
         f"Separate GPLv3+ read-only EFI driver; firmware host licensing unchanged.\n"
         f"Release: {URL}\nSHA-256: {SHA256}\n"

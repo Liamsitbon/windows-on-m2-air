@@ -39,3 +39,32 @@ class ExFatDependencyTests(unittest.TestCase):
         self.assertIn("SECTION DXE_DEPEX = Platform/MacBookAirM2Pkg/ExternalDrivers/exfat.depex", fdf)
         self.assertIn("SECTION PE32 = Platform/MacBookAirM2Pkg/ExternalDrivers/exfat_aa64.efi", fdf)
         self.assertIn('python3 "$ROOT/tools/prepare_j413_exfat.py"', (root / "scripts/build-j413-firmware.sh").read_text())
+
+    def test_cached_driver_and_notices_prepare_without_network(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            target = root / 'mu/Platform/MacBookAirM2Pkg/ExternalDrivers'
+            target.mkdir(parents=True)
+            data = self.fixture()
+            (target/'exfat_aa64.efi').write_bytes(data)
+            output = root/'dist/j413/third-party/efifs'
+            output.mkdir(parents=True)
+            notices = {'LICENSE': b'license fixture', 'README.md': b'readme fixture'}
+            for name, content in notices.items(): (output/name).write_bytes(content)
+            with patch.object(exfat, 'SHA256', hashlib.sha256(data).hexdigest()), patch.object(exfat, 'NOTICE_SHA256', {k: hashlib.sha256(v).hexdigest() for k,v in notices.items()}), patch.object(exfat.urllib.request, 'urlopen', side_effect=AssertionError('network must not be used')):
+                exfat.prepare(root)
+            self.assertEqual((target/'exfat.depex').read_bytes(), bytes([6,8]))
+            self.assertEqual((output/'exfat_aa64.efi').read_bytes(), data)
+
+    def test_invalid_notice_does_not_publish_driver_or_dependency(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d);target=root/'mu/Platform/MacBookAirM2Pkg/ExternalDrivers';target.mkdir(parents=True)
+            data=self.fixture();(target/'exfat_aa64.efi').write_bytes(data)
+            output=root/'dist/j413/third-party/efifs';output.mkdir(parents=True)
+            (output/'LICENSE').write_bytes(b'wrong')
+            with patch.object(exfat,'SHA256',hashlib.sha256(data).hexdigest()):
+                with self.assertRaisesRegex(ValueError,'LICENSE'):exfat.prepare(root)
+            self.assertFalse((target/'exfat.depex').exists())
+            self.assertFalse((output/'exfat_aa64.efi').exists())
