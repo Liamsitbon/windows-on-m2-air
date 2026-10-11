@@ -118,3 +118,9 @@ External installer preparation: [observed SSD and boot boundaries](J413_EXTERNAL
 
 Official Asahi source adaptations and measured resources:
 [portable protocol components](ASAHI_PORTS.md).
+
+The current J413 boot experiment is physical/debug-off with `M1N1_NO_PROXY` in
+both stages (EXP-20261011-J413-013). It excludes takeover and interactive proxy
+fallback; failed startup stops visibly. The earlier UART candidate is superseded.
+See J413_BOOT_EXPERIMENT.md for the current hash and existing ESP install command.
+No new physical UEFI or Windows success is claimed.

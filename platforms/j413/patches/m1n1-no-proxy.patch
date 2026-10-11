@@ -1,0 +1,157 @@
+diff --git a/src/main.c b/src/main.c
+--- a/src/main.c
++++ b/src/main.c
+@@ -76,7 +76,7 @@
+     bool usb_up = false;
+ 
+ #ifndef BRINGUP
+-#ifdef EARLY_PROXY_TIMEOUT
++#if defined(EARLY_PROXY_TIMEOUT) && !defined(M1N1_NO_PROXY)
+     int node = adt_path_offset(adt, "/chosen/asmb");
+     u64 lp_sip0 = 0;
+ 
+@@ -138,6 +138,7 @@
+             goto proxy_fallback;
+     }
+ 
++#ifndef M1N1_NO_PROXY
+     if (payload_run() == 0) {
+         printf("Valid payload found\n");
+         return;
+@@ -146,8 +147,17 @@
+ 
+     printf("No valid payload found\n");
+ 
++#endif
++
+ proxy_fallback:
+-
++#ifdef M1N1_NO_PROXY
++    fb_set_active(true);
++    printf("J413 STOP: autonomous boot did not complete; proxy disabled.\n");
++    printf("Keep the preceding failure lines; return to macOS with the startup picker.\n");
++    iodev_console_kick();
++    while (1)
++        sysop("wfe");
++#else
+ #ifndef BRINGUP
+     if (!usb_up) {
+         usb_init();
+@@ -158,6 +168,7 @@
+     printf("Running proxy...\n");
+ 
+     uartproxy_run(NULL);
++#endif
+ }
+ 
+ void m1n1_main(void)
+diff --git a/src/uartproxy.c b/src/uartproxy.c
+--- a/src/uartproxy.c
++++ b/src/uartproxy.c
+@@ -4,6 +4,7 @@
+ #include "uartproxy_event.h"
+ #include "assert.h"
+ #include "exception.h"
++#include "fb.h"
+ #include "iodev.h"
+ #include "proxy.h"
+ #include "string.h"
+@@ -120,6 +121,16 @@
+ 
+ int uartproxy_run(struct uartproxy_msg_start *start)
+ {
++#ifdef M1N1_NO_PROXY
++    fb_set_active(true);
++    printf("J413 STOP: interactive proxy is disabled in this image.\n");
++    if (start)
++        printf("Unhandled guest event reason=%u code=%u info=%p\n",
++               start->reason, start->code, start->info);
++    iodev_console_kick();
++    while (1)
++        sysop("wfe");
++#else
+     int ret;
+     int running = 1;
+     size_t bytes;
+@@ -288,6 +299,7 @@
+     }
+ 
+     return ret;
++#endif
+ }
+ 
+ void uartproxy_send_event(u16 event_type, void *data, u16 length)
+diff --git a/src/hv.c b/src/hv.c
+--- a/src/hv.c
++++ b/src/hv.c
+@@ -1358,6 +1358,7 @@
+     if (hv_runtime_diag_enabled())
+         hv_diag_delivery_flush(&hv_diag_event_delivery, hv_send_diag_sample, NULL);
+     hv_sample_pc(ctx);
++#ifndef M1N1_NO_PROXY
+     iodev_handle_events(uartproxy_iodev);
+     if (iodev_can_read(uartproxy_iodev)) {
+         /*
+@@ -1371,6 +1372,7 @@
+         if (hv_pinned_cpu == -1 || hv_pinned_cpu == smp_id())
+             hv_exc_proxy(ctx, START_HV, HV_USER_INTERRUPT, NULL);
+     }
++#endif
+     hv_vuart_poll();
+     hv_fb_stream_tick(&hv_framebuffer_stream);
+ }
+diff --git a/src/hv_bootstrap.c b/src/hv_bootstrap.c
+--- a/src/hv_bootstrap.c
++++ b/src/hv_bootstrap.c
+@@ -49,6 +49,9 @@
+ #include "chainload.h"
+ #include "heapblock.h"
+ #include "hv_autonomous_profile.h"
++#ifdef M1N1_NO_PROXY
++#include "hv_no_proxy_profile.h"
++#endif
+ #include "iodev.h"
+ #include "minilzlib/minlzma.h"
+ #include "tinf/tinf.h"
+@@ -147,6 +150,13 @@
+         return HV_BOOTSTRAP_ATTEMPT_FAILED;
+     }
+ 
++#ifdef M1N1_NO_PROXY
++    if (!hv_no_proxy_profile_allowed(&profile)) {
++        printf("J413 STOP: image profile requires a host transport; flags=%#x\n", payload.flags);
++        return HV_BOOTSTRAP_ATTEMPT_FAILED;
++    }
++#endif
++
+     printf("BOOTSTRAP_VALIDATE compressed=0x%lx inner=0x%lx flags=%#x\n",
+            (u64)payload.compressed_size, (u64)payload.uncompressed_size, payload.flags);
+     bootstrap_monitor_window(&profile, usb_up);
+diff --git a/src/hv_autonomous_boot_runtime.c b/src/hv_autonomous_boot_runtime.c
+--- a/src/hv_autonomous_boot_runtime.c
++++ b/src/hv_autonomous_boot_runtime.c
+@@ -14,6 +14,10 @@
+ #include "uartproxy.h"
+ #include "usb.h"
+ #include "utils.h"
++
++#ifdef M1N1_NO_PROXY
++#include "hv_no_proxy_profile.h"
++#endif
+ 
+ #define HV_AUTONOMOUS_MAX_IMAGE_SIZE (64u * 1024u * 1024u)
+ struct boot_runtime_io {
+@@ -106,6 +110,13 @@
+     printf("Standalone: image valid layout=%u compressed=0x%lx firmware=0x%lx\n",
+            payload.layout_version, (u64)payload.compressed_size, (u64)payload.uncompressed_size);
+ 
++#ifdef M1N1_NO_PROXY
++    if (!hv_no_proxy_flags_allowed(payload.flags)) {
++        printf("J413 STOP: image profile requires a host transport; flags=%#x\n", payload.flags);
++        return HV_AUTONOMOUS_BOOT_ATTEMPT_FAILED;
++    }
++#endif
++
+     if (!hv_autonomous_profile_decode(payload.flags, &profile)) {
+         printf("Standalone: invalid launch profile flags=%#x\n", payload.flags);
+         return HV_AUTONOMOUS_BOOT_ATTEMPT_FAILED;

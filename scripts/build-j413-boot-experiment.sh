@@ -4,7 +4,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 case "${1:-}" in
     --dry-run)
-        echo "Build J413 DEBUG Mu and two J413 m1n1 stages; verify nested boot.bin and manifest."
+        echo "Build J413 DEBUG Mu and two J413 m1n1 stages with proxy disabled; verify nested boot.bin and manifest."
         echo "Output: dist/j413/boot-experiment; requires a separately recorded hardware experiment."
         exit 0 ;;
     "") ;;
@@ -31,14 +31,14 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 for role in 0 1; do
     make -C m1n1_windows clean
-    make -C m1n1_windows -j"${JOBS:-4}" J413=1 EXTRA_CFLAGS="-DM1N1_STAGE$role -DM1N1_J413"
+    make -C m1n1_windows -j"${JOBS:-4}" J413=1 EXTRA_CFLAGS="-DM1N1_STAGE$role -DM1N1_J413 -DM1N1_NO_PROXY"
     cp m1n1_windows/build/m1n1.bin "$STAGING/m1n1-stage$role.bin"
 done
 cp dist/j413/firmware-debug/J413_EFI.fd "$STAGING/J413_EFI.fd"
 python3 tools/pack_boot.py --stage0-m1n1 "$STAGING/m1n1-stage0.bin" \
     --stage1-m1n1 "$STAGING/m1n1-stage1.bin" --firmware "$STAGING/J413_EFI.fd" \
     --layout config/j413-guest-layout.json --output "$STAGING/boot.bin" \
-    --display physical --debug uart --source-commit "$(git -C m1n1_windows rev-parse HEAD)" \
+    --display physical --debug off --source-commit "$(git -C m1n1_windows rev-parse HEAD)" \
     --compiler "$(gcc --version | head -1)"
 python3 - "$STAGING/TOOLCHAINS.json" <<'PY'
 import json, subprocess, sys
@@ -50,7 +50,7 @@ Path(sys.argv[1]).write_text(json.dumps({
 }, indent=2) + "\n")
 PY
 python3 tools/artifact_manifest.py create --allow-dirty --platform j413 --root "$ROOT" \
-    --directory "$STAGING" --profile debug --display physical --debug uart \
+    --directory "$STAGING" --profile debug --display physical --debug off \
     --compiler "$(gcc --version | head -1)" boot.bin m1n1-stage0.bin m1n1-stage1.bin J413_EFI.fd TOOLCHAINS.json
 python3 tools/artifact_manifest.py verify "$STAGING/MANIFEST.json" --platform j413 \
     --require-role boot.bin=standalone-bootstrap --require-role J413_EFI.fd=guest-firmware

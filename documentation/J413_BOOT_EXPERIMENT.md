@@ -3,7 +3,7 @@
 This is a compiled, source-checked boot experiment for MacBook Air M2 J413/T8112.
 It has not been launched on the Air. Its first success criterion is a visible Mu
 UEFI checkpoint; Windows Setup, Windows CPU/timer progress, USB storage/input,
-GPU and accelerated display remain unqualified. See EXP-20261011-J413-010.
+GPU and accelerated display remain unqualified. See EXP-20261011-J413-010 and EXP-20261011-J413-013.
 
 ## Build and identity
 
@@ -19,12 +19,51 @@ manifest and bytes are verified first. No disk, boot policy or installer is
 changed by this script. Publication replaces the output directory only after
 verification, preserving the previous directory on a failed build.
 
-Output: `dist/j413/boot-experiment/boot.bin`, 2,688,096 bytes, SHA-256:
-`16020107c5bdf2096fcbf68eab2630e35e52dae1c283014d3485ee759f910806`.
+Output: `dist/j413/boot-experiment/boot.bin`, 2,513,640 bytes, SHA-256:
+`0f498e74e76912c906e48bdb556405433f3c193ab3f82d33fbb4a5446726ebdd`.
 Its manifest includes exact artifacts, submodule pins/diffs, J413 source overlay
-and patch hash, DEBUG qualification, display/UART profile, and TOOLCHAINS.json.
+and patch hash, DEBUG qualification, physical/debug-off profile, and TOOLCHAINS.json.
 Nested decompression/CRC checks pass and the decoded FD matches the previously
 built clean firmware byte for byte. These are software checks, not a boot test.
+
+## Proxy is disabled in the current candidate
+
+Both m1n1 stages are compiled with `M1N1_NO_PROXY` and both image manifests use
+flags 1: physical display, debug off. Mu's DEBUG build and the manifest's `debug`
+qualification label describe an experimental firmware build, not a host transport.
+The loader does not open USB gadget debugging, wait for a host, or accept proxy
+commands. Bootstrap and guest entry reject virtual-display/UART/full/monitor
+profiles before opening their host transport. Guest Type-C platform power remains
+required; this does not add a USB0 route or qualify USB1 DMA.
+
+Early proxy entry and the normal startup failure fallback are excluded. A missing
+payload or failed launch stops with `J413 STOP` and keeps the preceding failure
+lines visible instead of printing `Running proxy...`. Tick-driven host command
+polling is excluded; functional guest IRQ/timer paths remain. The shared proxy
+entry also stops if reached by an unexpected guest event instead of processing
+commands. These stop boundaries preserve hardware safety checks; they do not turn
+a failed preflight or unhandled trap into a successful boot.
+
+EXP013 corrects the earlier physical/UART candidate: UART flags 5 actually enabled
+proxy takeover, and the inherited startup failure path still entered proxy.
+That candidate (SHA `16020107c5bdf2096fcbf68eab2630e35e52dae1c283014d3485ee759f910806`)
+is superseded and preserved privately. The operator reported `Running proxy...`,
+but supplied no installed hash or preceding trace; its exact failing stage is
+not established. Four executable host regressions cover both real startup bodies,
+missing/failed payloads, the shared proxy entry, allowed profiles and legacy
+startup behavior. Native build/object checks complement those portable checks.
+
+From the clean repository root, the existing ESP installer command is:
+
+```sh
+sudo ./scripts/install-esp.sh install --disk disk0s4 --image dist/j413/boot-experiment/boot.bin
+```
+
+This verifies the candidate and backs up the old file before replacement. If the
+internal ESP still fails to mount, the script stops before replacing its payload.
+No raw-disk overwrite or Recovery re-personalization is implied by this command.
+Record the actual installed hash and the next visible boot checkpoint in EXP013
+or a subsequent launch entry. Installation and a physical boot remain pending.
 
 ## What changes at launch
 
