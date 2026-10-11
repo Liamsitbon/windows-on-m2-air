@@ -1,0 +1,1800 @@
+{
+  "bundles": [
+    {
+      "bundle": "AGXG14G.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleMobileFileIntegrity": "1.0.1",
+        "com.apple.driver.RTBuddy": "1.0.0",
+        "com.apple.iokit.CoreAnalyticsFamily": "1.0",
+        "com.apple.iokit.IOGPUFamily": "2.0.0",
+        "com.apple.iokit.IOReportFamily": "1.0",
+        "com.apple.iokit.IOSurface": "52.6.0",
+        "com.apple.kec.Libm": "1.0.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 1287760,
+        "virtual_address": "0xfffffe000713e650"
+      },
+      "group": "gpu",
+      "identifier": "com.apple.AGXG14G",
+      "metadata_sha256": "8748c2970a20ae9620828bbf9d57f36e69daca0665955429df38b48bf83a6ed5",
+      "personalities": [
+        {
+          "IOClass": "AGXArmFirmwareMapper",
+          "IONameMatch": "iommu-mapper,gfx",
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AGXArmFirmwareMapper"
+        },
+        {
+          "IOClass": "AGXAcceleratorG14G",
+          "IONameMatch": [
+            "gpu,t8015",
+            "gpu,t8027",
+            "gpu,t8030",
+            "gpu,t8103",
+            "gpu,t8110",
+            "gpu,t8112"
+          ],
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AGXG14G"
+        },
+        {
+          "IOClass": "AGXAcceleratorG14G_A0",
+          "IONameMatch": [
+            "gpu,t8132",
+            "gpu,t8015",
+            "gpu,t8027",
+            "gpu,t8030",
+            "gpu,t8103",
+            "gpu,t8110",
+            "gpu,t8112"
+          ],
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AGXG14G_A0"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 5354,
+      "version": "360.34.5",
+      "windows_contract": "WDDM kernel display miniport plus Direct3D user-mode driver; GPU VA, queues, fences, TDR and residency must be reimplemented."
+    },
+    {
+      "bundle": "AGXFirmwareKextG14GRTBuddy.kext",
+      "dependencies": {
+        "com.apple.AGXFirmwareKextRTBuddy64": "1.0",
+        "com.apple.driver.RTBuddy": "1.0.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 1267824,
+        "virtual_address": "0xfffffe0007139870"
+      },
+      "group": "gpu",
+      "identifier": "com.apple.AGXFirmwareKextG14GRTBuddy",
+      "metadata_sha256": "aaddaf69647fc6b99391f29a8376d9b8476cc65747121862d5a59e9069a2aca0",
+      "personalities": [
+        {
+          "IOClass": "AGXFirmwareKextG14RTBuddy",
+          "IOPropertyMatch": {
+            "role": "GFX"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "Firmware"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 434,
+      "version": "1",
+      "windows_contract": "WDDM kernel display miniport plus Direct3D user-mode driver; GPU VA, queues, fences, TDR and residency must be reimplemented."
+    },
+    {
+      "bundle": "AGXMetalG14G.bundle",
+      "dependencies": {},
+      "executable_in_bundle": false,
+      "fileset": null,
+      "group": "gpu",
+      "identifier": "com.apple.AGXMetalG14G",
+      "metadata_sha256": "2cfc7b07234bfbd9d15f855dfb906a4e220b26c5d88af7fa4cd0b7ee4f2cd0ab",
+      "personalities": [],
+      "present_in_boot_collection": false,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 0,
+      "version": "360.34.5",
+      "windows_contract": "WDDM kernel display miniport plus Direct3D user-mode driver; GPU VA, queues, fences, TDR and residency must be reimplemented."
+    },
+    {
+      "bundle": "IOGPUFamily.kext",
+      "dependencies": {
+        "com.apple.driver.AppleMobileFileIntegrity": "1.0.1",
+        "com.apple.iokit.IOGraphicsFamily": "1.0.0b1",
+        "com.apple.iokit.IOPCIFamily": "1.0.0b1",
+        "com.apple.iokit.IOReportFamily": "1.0",
+        "com.apple.iokit.IOSurface": "87.0",
+        "com.apple.kpi.bsd": "9.0.0b1",
+        "com.apple.kpi.iokit": "9.0.0b1",
+        "com.apple.kpi.libkern": "9.0.0b1",
+        "com.apple.kpi.mach": "9.0.0b1",
+        "com.apple.kpi.private": "10.0.0d3",
+        "com.apple.kpi.unsupported": "9.0.0b1"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 11029808,
+        "virtual_address": "0xfffffe0007a88d30"
+      },
+      "group": "gpu",
+      "identifier": "com.apple.iokit.IOGPUFamily",
+      "metadata_sha256": "1094c63ec9bf2299582719d9662b6f31c479b78064f4785c6ba83509a1049926",
+      "personalities": [],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 3759,
+      "version": "162.11",
+      "windows_contract": "WDDM kernel display miniport plus Direct3D user-mode driver; GPU VA, queues, fences, TDR and residency must be reimplemented."
+    },
+    {
+      "bundle": "AppleDCP.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleFirmwareKit": "1.0.0",
+        "com.apple.driver.RTBuddy": "1.0",
+        "com.apple.kpi.iokit": "14.0",
+        "com.apple.kpi.libkern": "14.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 4308544,
+        "virtual_address": "0xfffffe000741fe40"
+      },
+      "group": "display",
+      "identifier": "com.apple.driver.AppleDCP",
+      "metadata_sha256": "baa3ca774d1fcb2002b2a73323dbadc27947383314be14a538371a31020c262e",
+      "personalities": [
+        {
+          "IOClass": "AppleDCPExpert",
+          "IONameMatch": "dcp-expert-v1",
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AppleDCPExpert"
+        },
+        {
+          "IOClass": "AFKACIPCEndpoint",
+          "IONameMatch": [
+            "bora-dcplEndpoint1",
+            "bora-dcplEndpoint2",
+            "bora-dcplEndpoint3",
+            "bora-dcplEndpoint4",
+            "bora-dcplEndpoint5",
+            "bora-dcplEndpoint6",
+            "bora-dcplEndpoint7",
+            "bora-dcplEndpoint8",
+            "bora-dcplEndpoint9",
+            "bora-dcplEndpoint10",
+            "bora-dcplEndpoint11",
+            "bora-dcplEndpoint12",
+            "bora-dcplEndpoint13",
+            "bora-dcplEndpoint14",
+            "bora-dcplEndpoint15",
+            "bora-dcplEndpoint16",
+            "bora-dcplEndpoint17",
+            "bora-dcplEndpoint18",
+            "bora-dcplEndpoint19",
+            "bora-dcplEndpoint20",
+            "bora-dcplEndpoint21",
+            "bora-dcplEndpoint22",
+            "bora-dcplEndpoint23",
+            "bora-dcprEndpoint1",
+            "bora-dcprEndpoint2",
+            "bora-dcprEndpoint3",
+            "bora-dcprEndpoint4",
+            "bora-dcprEndpoint5",
+            "bora-dcprEndpoint6",
+            "bora-dcprEndpoint7",
+            "bora-dcprEndpoint8",
+            "bora-dcprEndpoint9",
+            "bora-dcprEndpoint10",
+            "bora-dcprEndpoint11",
+            "bora-dcprEndpoint12",
+            "bora-dcprEndpoint13",
+            "bora-dcprEndpoint14",
+            "bora-dcprEndpoint15",
+            "bora-dcprEndpoint16",
+            "bora-dcprEndpoint17",
+            "bora-dcprEndpoint18",
+            "bora-dcprEndpoint19",
+            "bora-dcprEndpoint20",
+            "bora-dcprEndpoint21",
+            "bora-dcprEndpoint22",
+            "bora-dcprEndpoint23",
+            "bora-dcpsEndpoint1",
+            "bora-dcpsEndpoint2",
+            "bora-dcpsEndpoint3",
+            "bora-dcpsEndpoint4",
+            "bora-dcpsEndpoint5",
+            "bora-dcpsEndpoint6",
+            "bora-dcpsEndpoint7",
+            "bora-dcpsEndpoint8",
+            "bora-dcpsEndpoint9",
+            "bora-dcpsEndpoint10",
+            "bora-dcpsEndpoint11",
+            "bora-dcpsEndpoint12",
+            "bora-dcpsEndpoint13",
+            "bora-dcpsEndpoint14",
+            "bora-dcpsEndpoint15",
+            "bora-dcpsEndpoint16",
+            "bora-dcpsEndpoint17",
+            "bora-dcpsEndpoint18",
+            "bora-dcpsEndpoint19",
+            "bora-dcpsEndpoint20",
+            "bora-dcpsEndpoint21",
+            "bora-dcpsEndpoint22",
+            "bora-dcpsEndpoint23"
+          ],
+          "IOProviderClass": "RTBuddyEndpointService",
+          "name": "BoraDCPEndpoints"
+        },
+        {
+          "IOClass": "DCPEndpointV2",
+          "IONameMatch": [
+            "DCPEndpoint1",
+            "DCPEndpoint2",
+            "DCPEndpoint3",
+            "DCPEndpoint4",
+            "DCPEndpoint5",
+            "DCPEndpoint6",
+            "DCPEndpoint7",
+            "DCPEndpoint8",
+            "DCPEndpoint9",
+            "DCPEndpoint10",
+            "DCPEndpoint11",
+            "DCPEndpoint12",
+            "DCPEndpoint13",
+            "DCPEndpoint14",
+            "DCPEndpoint15",
+            "DCPEndpoint16",
+            "DCPEndpoint17",
+            "DCPEndpoint18",
+            "DCPEndpoint19",
+            "DCPEndpoint20",
+            "DCPEndpoint21",
+            "DCPEndpoint22",
+            "DCPEndpoint23",
+            "DCP0Endpoint1",
+            "DCP0Endpoint2",
+            "DCP0Endpoint3",
+            "DCP0Endpoint4",
+            "DCP0Endpoint5",
+            "DCP0Endpoint6",
+            "DCP0Endpoint7",
+            "DCP0Endpoint8",
+            "DCP0Endpoint9",
+            "DCP0Endpoint10",
+            "DCP0Endpoint11",
+            "DCP0Endpoint12",
+            "DCP0Endpoint13",
+            "DCP0Endpoint14",
+            "DCP0Endpoint15",
+            "DCP0Endpoint16",
+            "DCP0Endpoint17",
+            "DCP0Endpoint18",
+            "DCP0Endpoint19",
+            "DCP0Endpoint20",
+            "DCP0Endpoint21",
+            "DCP0Endpoint22",
+            "DCP0Endpoint23",
+            "DCPSECEndpoint1",
+            "DCPSECEndpoint2",
+            "DCPSECEndpoint3",
+            "DCPSECEndpoint4",
+            "DCPSECEndpoint5",
+            "DCPSECEndpoint6",
+            "DCPSECEndpoint7",
+            "DCPSECEndpoint8",
+            "DCPSECEndpoint9",
+            "DCPSECEndpoint10",
+            "DCPSECEndpoint11",
+            "DCPSECEndpoint12",
+            "DCPSECEndpoint13",
+            "DCPSECEndpoint14",
+            "DCPSECEndpoint15",
+            "DCPSECEndpoint16",
+            "DCPSECEndpoint17",
+            "DCPSECEndpoint18",
+            "DCPSECEndpoint19",
+            "DCPSECEndpoint20",
+            "DCPSECEndpoint21",
+            "DCPSECEndpoint22",
+            "DCPSECEndpoint23",
+            "DCPEXTEndpoint1",
+            "DCPEXTEndpoint2",
+            "DCPEXTEndpoint3",
+            "DCPEXTEndpoint4",
+            "DCPEXTEndpoint5",
+            "DCPEXTEndpoint6",
+            "DCPEXTEndpoint7",
+            "DCPEXTEndpoint8",
+            "DCPEXTEndpoint9",
+            "DCPEXTEndpoint10",
+            "DCPEXTEndpoint11",
+            "DCPEXTEndpoint12",
+            "DCPEXTEndpoint13",
+            "DCPEXTEndpoint14",
+            "DCPEXTEndpoint15",
+            "DCPEXTEndpoint16",
+            "DCPEXTEndpoint17",
+            "DCPEXTEndpoint18",
+            "DCPEXTEndpoint19",
+            "DCPEXTEndpoint20",
+            "DCPEXTEndpoint21",
+            "DCPEXTEndpoint22",
+            "DCPEXTEndpoint23",
+            "DCPEXT0Endpoint1",
+            "DCPEXT0Endpoint2",
+            "DCPEXT0Endpoint3",
+            "DCPEXT0Endpoint4",
+            "DCPEXT0Endpoint5",
+            "DCPEXT0Endpoint6",
+            "DCPEXT0Endpoint7",
+            "DCPEXT0Endpoint8",
+            "DCPEXT0Endpoint9",
+            "DCPEXT0Endpoint10",
+            "DCPEXT0Endpoint11",
+            "DCPEXT0Endpoint12",
+            "DCPEXT0Endpoint13",
+            "DCPEXT0Endpoint14",
+            "DCPEXT0Endpoint15",
+            "DCPEXT0Endpoint16",
+            "DCPEXT0Endpoint17",
+            "DCPEXT0Endpoint18",
+            "DCPEXT0Endpoint19",
+            "DCPEXT0Endpoint20",
+            "DCPEXT0Endpoint21",
+            "DCPEXT0Endpoint22",
+            "DCPEXT0Endpoint23",
+            "DCPEXT1Endpoint1",
+            "DCPEXT1Endpoint2",
+            "DCPEXT1Endpoint3",
+            "DCPEXT1Endpoint4",
+            "DCPEXT1Endpoint5",
+            "DCPEXT1Endpoint6",
+            "DCPEXT1Endpoint7",
+            "DCPEXT1Endpoint8",
+            "DCPEXT1Endpoint9",
+            "DCPEXT1Endpoint10",
+            "DCPEXT1Endpoint11",
+            "DCPEXT1Endpoint12",
+            "DCPEXT1Endpoint13",
+            "DCPEXT1Endpoint14",
+            "DCPEXT1Endpoint15",
+            "DCPEXT1Endpoint16",
+            "DCPEXT1Endpoint17",
+            "DCPEXT1Endpoint18",
+            "DCPEXT1Endpoint19",
+            "DCPEXT1Endpoint20",
+            "DCPEXT1Endpoint21",
+            "DCPEXT1Endpoint22",
+            "DCPEXT1Endpoint23",
+            "DCPEXT2Endpoint1",
+            "DCPEXT2Endpoint2",
+            "DCPEXT2Endpoint3",
+            "DCPEXT2Endpoint4",
+            "DCPEXT2Endpoint5",
+            "DCPEXT2Endpoint6",
+            "DCPEXT2Endpoint7",
+            "DCPEXT2Endpoint8",
+            "DCPEXT2Endpoint9",
+            "DCPEXT2Endpoint10",
+            "DCPEXT2Endpoint11",
+            "DCPEXT2Endpoint12",
+            "DCPEXT2Endpoint13",
+            "DCPEXT2Endpoint14",
+            "DCPEXT2Endpoint15",
+            "DCPEXT2Endpoint16",
+            "DCPEXT2Endpoint17",
+            "DCPEXT2Endpoint18",
+            "DCPEXT2Endpoint19",
+            "DCPEXT2Endpoint20",
+            "DCPEXT2Endpoint21",
+            "DCPEXT2Endpoint22",
+            "DCPEXT2Endpoint23",
+            "DCPEXT3Endpoint1",
+            "DCPEXT3Endpoint2",
+            "DCPEXT3Endpoint3",
+            "DCPEXT3Endpoint4",
+            "DCPEXT3Endpoint5",
+            "DCPEXT3Endpoint6",
+            "DCPEXT3Endpoint7",
+            "DCPEXT3Endpoint8",
+            "DCPEXT3Endpoint9",
+            "DCPEXT3Endpoint10",
+            "DCPEXT3Endpoint11",
+            "DCPEXT3Endpoint12",
+            "DCPEXT3Endpoint13",
+            "DCPEXT3Endpoint14",
+            "DCPEXT3Endpoint15",
+            "DCPEXT3Endpoint16",
+            "DCPEXT3Endpoint17",
+            "DCPEXT3Endpoint18",
+            "DCPEXT3Endpoint19",
+            "DCPEXT3Endpoint20",
+            "DCPEXT3Endpoint21",
+            "DCPEXT3Endpoint22",
+            "DCPEXT3Endpoint23",
+            "DCPEXT4Endpoint1",
+            "DCPEXT4Endpoint2",
+            "DCPEXT4Endpoint3",
+            "DCPEXT4Endpoint4",
+            "DCPEXT4Endpoint5",
+            "DCPEXT4Endpoint6",
+            "DCPEXT4Endpoint7",
+            "DCPEXT4Endpoint8",
+            "DCPEXT4Endpoint9",
+            "DCPEXT4Endpoint10",
+            "DCPEXT4Endpoint11",
+            "DCPEXT4Endpoint12",
+            "DCPEXT4Endpoint13",
+            "DCPEXT4Endpoint14",
+            "DCPEXT4Endpoint15",
+            "DCPEXT4Endpoint16",
+            "DCPEXT4Endpoint17",
+            "DCPEXT4Endpoint18",
+            "DCPEXT4Endpoint19",
+            "DCPEXT4Endpoint20",
+            "DCPEXT4Endpoint21",
+            "DCPEXT4Endpoint22",
+            "DCPEXT4Endpoint23",
+            "DCPEXT5Endpoint1",
+            "DCPEXT5Endpoint2",
+            "DCPEXT5Endpoint3",
+            "DCPEXT5Endpoint4",
+            "DCPEXT5Endpoint5",
+            "DCPEXT5Endpoint6",
+            "DCPEXT5Endpoint7",
+            "DCPEXT5Endpoint8",
+            "DCPEXT5Endpoint9",
+            "DCPEXT5Endpoint10",
+            "DCPEXT5Endpoint11",
+            "DCPEXT5Endpoint12",
+            "DCPEXT5Endpoint13",
+            "DCPEXT5Endpoint14",
+            "DCPEXT5Endpoint15",
+            "DCPEXT5Endpoint16",
+            "DCPEXT5Endpoint17",
+            "DCPEXT5Endpoint18",
+            "DCPEXT5Endpoint19",
+            "DCPEXT5Endpoint20",
+            "DCPEXT5Endpoint21",
+            "DCPEXT5Endpoint22",
+            "DCPEXT5Endpoint23",
+            "DCPEXT6Endpoint1",
+            "DCPEXT6Endpoint2",
+            "DCPEXT6Endpoint3",
+            "DCPEXT6Endpoint4",
+            "DCPEXT6Endpoint5",
+            "DCPEXT6Endpoint6",
+            "DCPEXT6Endpoint7",
+            "DCPEXT6Endpoint8",
+            "DCPEXT6Endpoint9",
+            "DCPEXT6Endpoint10",
+            "DCPEXT6Endpoint11",
+            "DCPEXT6Endpoint12",
+            "DCPEXT6Endpoint13",
+            "DCPEXT6Endpoint14",
+            "DCPEXT6Endpoint15",
+            "DCPEXT6Endpoint16",
+            "DCPEXT6Endpoint17",
+            "DCPEXT6Endpoint18",
+            "DCPEXT6Endpoint19",
+            "DCPEXT6Endpoint20",
+            "DCPEXT6Endpoint21",
+            "DCPEXT6Endpoint22",
+            "DCPEXT6Endpoint23",
+            "DCPEXT7Endpoint1",
+            "DCPEXT7Endpoint2",
+            "DCPEXT7Endpoint3",
+            "DCPEXT7Endpoint4",
+            "DCPEXT7Endpoint5",
+            "DCPEXT7Endpoint6",
+            "DCPEXT7Endpoint7",
+            "DCPEXT7Endpoint8",
+            "DCPEXT7Endpoint9",
+            "DCPEXT7Endpoint10",
+            "DCPEXT7Endpoint11",
+            "DCPEXT7Endpoint12",
+            "DCPEXT7Endpoint13",
+            "DCPEXT7Endpoint14",
+            "DCPEXT7Endpoint15",
+            "DCPEXT7Endpoint16",
+            "DCPEXT7Endpoint17",
+            "DCPEXT7Endpoint18",
+            "DCPEXT7Endpoint19",
+            "DCPEXT7Endpoint20",
+            "DCPEXT7Endpoint21",
+            "DCPEXT7Endpoint22",
+            "DCPEXT7Endpoint23"
+          ],
+          "IOProbeScore": 1,
+          "IOProviderClass": "RTBuddyEndpointService",
+          "name": "DCPEndpointsV2"
+        },
+        {
+          "IOClass": "AFKFirmwareService",
+          "IOPropertyMatch": {
+            "role": "DCPEXT"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "DCPFirmwareServiceEXT"
+        },
+        {
+          "IOClass": "PMGRDispCtrl",
+          "IONameMatch": "pmgr-disp-ctrl",
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "PMGRDispCtrl"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 646,
+      "version": "1",
+      "windows_contract": "DCP firmware protocol plus WDDM VidPn/present/scanout ownership; rendering and scanout require separate qualification."
+    },
+    {
+      "bundle": "AppleDCPDPTXProxy.kext",
+      "dependencies": {
+        "com.apple.driver.AppleDCP": "1.0",
+        "com.apple.driver.AppleFirmwareKit": "1.0.0",
+        "com.apple.driver.DCPAVFamilyProxy": "1.0.0",
+        "com.apple.driver.DCPDPFamilyProxy": "1.0.0",
+        "com.apple.iokit.IOAVFamily": "1.0",
+        "com.apple.iokit.IOAccessoryManager": "1.0",
+        "com.apple.iokit.IODisplayPortFamily": "1.0",
+        "com.apple.iokit.IOHDCPFamily": "1.0",
+        "com.apple.iokit.IOPortFamily": "1.0",
+        "com.apple.kpi.iokit": "19.0",
+        "com.apple.kpi.libkern": "19.0",
+        "com.apple.kpi.mach": "19.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 4317824,
+        "virtual_address": "0xfffffe0007422280"
+      },
+      "group": "display",
+      "identifier": "com.apple.driver.AppleDCPDPTXProxy",
+      "metadata_sha256": "34683de8f206e7d93beaaebd9760366041ba6b4c2b291c2a0733f8bbe6375539",
+      "personalities": [
+        {
+          "IOClass": "AppleDCPDPTXRemoteHDCPAuthSessionProxy",
+          "IOPropertyMatch": {
+            "EPICName": "dcpdptx-hdcp-auth-session"
+          },
+          "IOProviderClass": "AFKEndpointInterface",
+          "name": "AppleDCPDPTXRemoteHDCPAuthSessionProxy"
+        },
+        {
+          "IOClass": "AppleDCPDPTXRemoteHDCPInterfaceProxy",
+          "IOPropertyMatch": {
+            "EPICName": "dcpdptx-hdcp-interface"
+          },
+          "IOProviderClass": "AFKEndpointInterface",
+          "name": "AppleDCPDPTXRemoteHDCPInterfaceProxy"
+        },
+        {
+          "IOClass": "AppleDCPDPTXRemotePortProxy",
+          "IOPropertyMatch": {
+            "EPICName": "dcpdptx-port-epic"
+          },
+          "IOProviderClass": "AFKEndpointInterface",
+          "name": "AppleDCPDPTXRemotePortProxy"
+        },
+        {
+          "IOClass": "AppleDCPLPDPTXPortProxy",
+          "IOPropertyMatch": {
+            "EPICName": "dcp-lpdptx-port-epic"
+          },
+          "IOProviderClass": "AFKEndpointInterface",
+          "name": "AppleDCPLPDPTXPortProxy"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 885,
+      "version": "1.0.0",
+      "windows_contract": "DCP firmware protocol plus WDDM VidPn/present/scanout ownership; rendering and scanout require separate qualification."
+    },
+    {
+      "bundle": "AppleDCPDPDisplayProxy.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.2",
+        "com.apple.driver.AppleSMC": "1.0",
+        "com.apple.driver.DCPAVFamilyProxy": "1.0",
+        "com.apple.iokit.IOAVFamily": "1.0",
+        "com.apple.kpi.iokit": "20.4",
+        "com.apple.kpi.libkern": "20.4"
+      },
+      "executable_in_bundle": false,
+      "fileset": null,
+      "group": "display",
+      "identifier": "com.apple.driver.AppleDCPDPDisplayProxy",
+      "metadata_sha256": "f9a46c8c6292d4fc244af912ded04051046fb038f0ae8f43d725f435aa12f88f",
+      "personalities": [
+        {
+          "IOClass": "AppleDCPDPDisplayProxy",
+          "IOProbeScore": 100000,
+          "IOPropertyMatch": {
+            "EPICLocation": "Embedded",
+            "EPICName": "dcpav-service-epic"
+          },
+          "IOProviderClass": "AFKEndpointInterface",
+          "name": "AppleDCPDPDisplayProxy"
+        }
+      ],
+      "present_in_boot_collection": false,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 0,
+      "version": "1",
+      "windows_contract": "DCP firmware protocol plus WDDM VidPn/present/scanout ownership; rendering and scanout require separate qualification."
+    },
+    {
+      "bundle": "AppleDockChannel.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 4478368,
+        "virtual_address": "0xfffffe00074495a0"
+      },
+      "group": "input",
+      "identifier": "com.apple.driver.AppleDockChannel",
+      "metadata_sha256": "01eff2b5d4fb65acd25db4def7037d7b8908698915fee085cafa2df4dc1ccd71",
+      "personalities": [
+        {
+          "IOClass": "AppleDockChannel",
+          "IONameMatch": "dockchannel,t8002",
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AppleDockChannel"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 472,
+      "version": "1",
+      "windows_contract": "KMDF DockChannel/RTKit transport plus VHF keyboard and Precision Touchpad HID reports; no J313 SPI reuse."
+    },
+    {
+      "bundle": "AppleHIDTransport.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleInputDeviceSupport": "1.0",
+        "com.apple.driver.AppleSMC": "1.0",
+        "com.apple.driver.AppleSPU": "1.0",
+        "com.apple.iokit.IOHIDFamily": "1.4",
+        "com.apple.kpi.bsd": "11.0",
+        "com.apple.kpi.iokit": "11.0",
+        "com.apple.kpi.libkern": "11.0",
+        "com.apple.kpi.mach": "11.0",
+        "com.apple.kpi.private": "11.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 5153920,
+        "virtual_address": "0xfffffe00074ee480"
+      },
+      "group": "input",
+      "identifier": "com.apple.driver.AppleHIDTransport",
+      "metadata_sha256": "eb25b58a24651f0a9b3afe8a55259470cf2245bb275a0b19c68301902a287b3e",
+      "personalities": [
+        {
+          "IOClass": "AppleHIDTransportDeviceDummy",
+          "IONameMatch": [
+            "hid-transport,dummy"
+          ],
+          "IOProviderClass": "IOPlatformDevice",
+          "name": "AppleHIDTransportDeviceDummy"
+        },
+        {
+          "IOClass": "AppleHIDTransportHIDDevice",
+          "IOPropertyMatch": {
+            "InterfaceType": "HID"
+          },
+          "IOProviderClass": "AppleHIDTransportInterface",
+          "name": "AppleHIDTransportHIDDevice"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 3625,
+      "version": "1000.41",
+      "windows_contract": "KMDF DockChannel/RTKit transport plus VHF keyboard and Precision Touchpad HID reports; no J313 SPI reuse."
+    },
+    {
+      "bundle": "AppleHIDTransportFIFO.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleDockChannel": "1.0",
+        "com.apple.driver.AppleHIDTransport": "1.0",
+        "com.apple.driver.AppleHIDTransportSCMCommon": "1.0",
+        "com.apple.driver.AppleInputDeviceSupport": "1.0",
+        "com.apple.driver.IOSlaveProcessor": "1.0.0",
+        "com.apple.driver.RTBuddy": "1.0.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 5209664,
+        "virtual_address": "0xfffffe00074fbe40"
+      },
+      "group": "input",
+      "identifier": "com.apple.driver.AppleHIDTransportFIFO",
+      "metadata_sha256": "fcd2023df795b78dafa25edc0955258f402522fc626a35e651328fa52e8c1e65",
+      "personalities": [
+        {
+          "IOClass": "AppleHIDTransportDeviceFIFO",
+          "IONameMatch": [
+            "hid-transport,dc"
+          ],
+          "IOProviderClass": "AppleDockChannelDevice",
+          "name": "AppleHIDTransportDeviceFIFO"
+        },
+        {
+          "IOClass": "AppleHIDTransportHibernator",
+          "IONameMatch": [
+            "aht-hibernator"
+          ],
+          "IOProviderClass": "IOService",
+          "name": "AppleHIDTransportHibernator"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 888,
+      "version": "1000.41",
+      "windows_contract": "KMDF DockChannel/RTKit transport plus VHF keyboard and Precision Touchpad HID reports; no J313 SPI reuse."
+    },
+    {
+      "bundle": "AppleHIDTransportSCMCommon.kext",
+      "dependencies": {
+        "com.apple.driver.AppleA7IOP": "1.0.0",
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleHIDTransport": "1.0",
+        "com.apple.driver.AppleInputDeviceSupport": "1.0",
+        "com.apple.driver.IOSlaveProcessor": "1.0.0",
+        "com.apple.driver.RTBuddy": "1.0.0",
+        "com.apple.kpi.bsd": "14.0",
+        "com.apple.kpi.iokit": "14.0",
+        "com.apple.kpi.libkern": "14.0",
+        "com.apple.kpi.mach": "14.0",
+        "com.apple.kpi.private": "22.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 5222672,
+        "virtual_address": "0xfffffe00074ff110"
+      },
+      "group": "input",
+      "identifier": "com.apple.driver.AppleHIDTransportSCMCommon",
+      "metadata_sha256": "474062c6b4c5c4766bceab5225be51c946b1fff15cb3c903a7501ac2ff71128b",
+      "personalities": [],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 591,
+      "version": "1000.41",
+      "windows_contract": "KMDF DockChannel/RTKit transport plus VHF keyboard and Precision Touchpad HID reports; no J313 SPI reuse."
+    },
+    {
+      "bundle": "AppleMultitouchDriver.kext",
+      "dependencies": {
+        "com.apple.driver.AppleInputDeviceSupport": "1.0",
+        "com.apple.iokit.IOHIDFamily": "1.4",
+        "com.apple.iokit.IOReportFamily": "1.0",
+        "com.apple.kpi.bsd": "9.0.0",
+        "com.apple.kpi.iokit": "9.0.0",
+        "com.apple.kpi.libkern": "9.0.0",
+        "com.apple.kpi.mach": "9.0.0",
+        "com.apple.kpi.private": "12.0.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 6881616,
+        "virtual_address": "0xfffffe0007694150"
+      },
+      "group": "input",
+      "identifier": "com.apple.driver.AppleMultitouchDriver",
+      "metadata_sha256": "21023495db4dfa2457e7c17972ad8540cd1d3203f8d9ec287be384e9b27769c2",
+      "personalities": [
+        {
+          "IOClass": "AppleMultitouchHIDService",
+          "IOProviderClass": "IOHIDInterface",
+          "name": "AppleMultitouchHIDService (0x0D,0x04)"
+        },
+        {
+          "IOClass": "AppleMultitouchHIDService",
+          "IOProviderClass": "IOHIDInterface",
+          "name": "MTUserDevice"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 1414,
+      "version": "1000.44",
+      "windows_contract": "KMDF DockChannel/RTKit transport plus VHF keyboard and Precision Touchpad HID reports; no J313 SPI reuse."
+    },
+    {
+      "bundle": "AppleHIDKeyboardEmbedded.kext",
+      "dependencies": {
+        "com.apple.iokit.IOHIDFamily": "1.4",
+        "com.apple.kpi.iokit": "10.0.0d2",
+        "com.apple.kpi.libkern": "10.0.0d2"
+      },
+      "executable_in_bundle": false,
+      "fileset": null,
+      "group": "input",
+      "identifier": "com.apple.driver.AppleHIDKeyboardEmbedded",
+      "metadata_sha256": "5a4bd8e0671187e5b806a4ab92f7b953c42873aa235b9b0bdc68a36812384608",
+      "personalities": [
+        {
+          "IOClass": "AppleEmbeddedKeyboard",
+          "IOProviderClass": "IOHIDInterface",
+          "name": "iAP B62 ANSI Map"
+        },
+        {
+          "IOClass": "AppleEmbeddedKeyboard",
+          "IOProviderClass": "IOHIDInterface",
+          "name": "iAP B62 ISO Map"
+        },
+        {
+          "IOClass": "AppleEmbeddedKeyboard",
+          "IOProviderClass": "IOHIDInterface",
+          "name": "iAP B62 JIS Map"
+        }
+      ],
+      "present_in_boot_collection": false,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 0,
+      "version": "1.2.0a3",
+      "windows_contract": "KMDF DockChannel/RTKit transport plus VHF keyboard and Precision Touchpad HID reports; no J313 SPI reuse."
+    },
+    {
+      "bundle": "IODARTFamily.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 10939648,
+        "virtual_address": "0xfffffe0007a72d00"
+      },
+      "group": "iommu",
+      "identifier": "com.apple.driver.IODARTFamily",
+      "metadata_sha256": "344d322a094a5938acc06934c966594c3bd7c2b8e23a0df0b76d4aa9992e37b4",
+      "personalities": [
+        {
+          "IOClass": "IODARTMapper",
+          "IONameMatch": "iommu-mapper",
+          "IOProviderClass": "IODARTMapperNub",
+          "name": "IODARTMapper"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 902,
+      "version": "1",
+      "windows_contract": "m1n1/platform DART ownership and explicit Windows DMA address translation; IOMapper is not a Windows API."
+    },
+    {
+      "bundle": "AppleT8110DART.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.IODARTFamily": "1.0.0",
+        "com.apple.kpi.bsd": "8.4.1",
+        "com.apple.kpi.iokit": "8.4.1",
+        "com.apple.kpi.libkern": "8.4.1",
+        "com.apple.kpi.mach": "8.4.1",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 7712736,
+        "virtual_address": "0xfffffe000775efe0"
+      },
+      "group": "iommu",
+      "identifier": "com.apple.driver.AppleT8110DART",
+      "metadata_sha256": "f5d13d2c19e8206c4ee1cb679d76cbf601ff870942013b0d553a74ba42420f6d",
+      "personalities": [
+        {
+          "IOClass": "AppleT8110DART",
+          "IONameMatch": "dart,t8110",
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AppleT8110DART"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 554,
+      "version": "1",
+      "windows_contract": "m1n1/platform DART ownership and explicit Windows DMA address translation; IOMapper is not a Windows API."
+    },
+    {
+      "bundle": "AppleSMC.kext",
+      "dependencies": {
+        "com.apple.driver.watchdog": "1.0.0",
+        "com.apple.iokit.IOACPIFamily": "1.4",
+        "com.apple.kpi.bsd": "13.0",
+        "com.apple.kpi.iokit": "13.0",
+        "com.apple.kpi.libkern": "13.0",
+        "com.apple.kpi.mach": "13.0",
+        "com.apple.kpi.private": "14.0.0",
+        "com.apple.kpi.unsupported": "8.0.0b2"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 7368512,
+        "virtual_address": "0xfffffe000770af40"
+      },
+      "group": "power",
+      "identifier": "com.apple.driver.AppleSMC",
+      "metadata_sha256": "a9c1ecf9c5f53ccf43209473835516e4d37c9fb894a3c7059fc11fb350bca8df",
+      "personalities": [
+        {
+          "IOClass": "AppleSMC",
+          "IONameMatch": "APP0001",
+          "IOProbeScore": 2000,
+          "IOProviderClass": "IOACPIPlatformDevice",
+          "name": "AppleSMC"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 1830,
+      "version": "3.1.9",
+      "windows_contract": "Platform ACPI/power integration and bounded SMC/PMGR protocol implementation; thermal limits must be measured."
+    },
+    {
+      "bundle": "AppleT8112PMGR.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.ApplePMGR": "1.0",
+        "com.apple.kec.Libm": "1.0.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 7755376,
+        "virtual_address": "0xfffffe0007769670"
+      },
+      "group": "power",
+      "identifier": "com.apple.driver.AppleT8112PMGR",
+      "metadata_sha256": "141e48dd33d6292935f2a68a8c8abf5ddce845d99178c65f5c37faa51d338671",
+      "personalities": [
+        {
+          "IOClass": "AppleT8112PMGR",
+          "IONameMatch": "pmgr1,t8112",
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AppleT8112PMGR"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 3177,
+      "version": "1",
+      "windows_contract": "Platform ACPI/power integration and bounded SMC/PMGR protocol implementation; thermal limits must be measured."
+    },
+    {
+      "bundle": "AppleT8112CLPC.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.ApplePMGR": "1.0",
+        "com.apple.iokit.IOReportFamily": "1.0",
+        "com.apple.iokit.IOSurface": "52.6.0",
+        "com.apple.kec.Libm": "1.0.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 7725184,
+        "virtual_address": "0xfffffe0007762080"
+      },
+      "group": "power",
+      "identifier": "com.apple.driver.AppleT8112CLPC",
+      "metadata_sha256": "fc09fbe91767cbbae864392dd1a4b54b9ddbde4b957db651db683ce6251db08b",
+      "personalities": [
+        {
+          "IOClass": "AppleCLPC",
+          "IONameMatch": "clpc,t8112",
+          "IOPropertyMatch": {
+            "clpc-match-version": 3
+          },
+          "IOProviderClass": "ApplePMGRNub",
+          "name": "AppleT8112CLPC"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 2114,
+      "version": "1",
+      "windows_contract": "Platform ACPI/power integration and bounded SMC/PMGR protocol implementation; thermal limits must be measured."
+    },
+    {
+      "bundle": "AppleT8112PCIe.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleEmbeddedPCIE": "1.0.0",
+        "com.apple.iokit.IOPCIFamily": "2.7",
+        "com.apple.iokit.IOReportFamily": "1.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 7744272,
+        "virtual_address": "0xfffffe0007766b10"
+      },
+      "group": "power",
+      "identifier": "com.apple.driver.AppleT8112PCIe",
+      "metadata_sha256": "7ebda35a3efd09ee89a160167499d4f386c9bd9c8355a127c4fcab4fc7ff3495",
+      "personalities": [
+        {
+          "IOClass": "ApplePCIEHostBridge",
+          "IONameMatch": "apcie-bridge",
+          "IOProbeScore": 5000,
+          "IOProviderClass": "IOPCIDevice",
+          "name": "ApplePCIEHostBridge"
+        },
+        {
+          "IOClass": "AppleT8112PCIe",
+          "IONameMatch": "apcie,t8112",
+          "IOProviderClass": "AppleARMIODevice",
+          "name": "AppleT8112PCIe"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 862,
+      "version": "1",
+      "windows_contract": "Platform ACPI/power integration and bounded SMC/PMGR protocol implementation; thermal limits must be measured."
+    },
+    {
+      "bundle": "AppleAOPAudio.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleEmbeddedAudioLibs": "1.0",
+        "com.apple.driver.AppleSPU": "1.0.0",
+        "com.apple.iokit.IOAudio2Family": "1.0",
+        "com.apple.kpi.bsd": "9.0.0",
+        "com.apple.kpi.iokit": "9.0.0",
+        "com.apple.kpi.libkern": "9.0.0",
+        "com.apple.kpi.mach": "9.0.0",
+        "com.apple.kpi.private": "9.0.0",
+        "com.apple.kpi.unsupported": "9.0.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 1416528,
+        "virtual_address": "0xfffffe000715dd50"
+      },
+      "group": "audio",
+      "identifier": "com.apple.driver.AppleAOPAudio",
+      "metadata_sha256": "a372cc696b90bb1929c88c32fbf867d9f104d5bfb3da2feeb3763ebb356d2540",
+      "personalities": [
+        {
+          "IOClass": "AppleAOPAudioAmpManagerDevice",
+          "IONameMatch": [
+            "audio-amp"
+          ],
+          "IOProbeScore": 1000,
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioAmpManagerDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioButtonHapticDevice",
+          "IONameMatch": [
+            "audio-aop-bhap",
+            "audio-bhap"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioButtonHapticDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioButtonOutputDevice",
+          "IONameMatch": [
+            "audio-aop-buttonout",
+            "audio-buttonout"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioButtonOutput"
+        },
+        {
+          "IOClass": "AppleAOPAudioClientManager",
+          "IONameMatch": [
+            "audio-hp",
+            "audio-aop-ldcm",
+            "audio-aop-hawking",
+            "audio-leap-internal-loopback",
+            "audio-leap-mca-loopback",
+            "audio-aop-speaker-manager",
+            "audio-aud-mca-baseband",
+            "audio-aud-mca-loopback",
+            "audio-aop-mca2-pmgr",
+            "audio-aop-mca3-pmgr",
+            "audio-aop-mca4-pmgr",
+            "audio-aop-mca5-pmgr"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioClientManager"
+        },
+        {
+          "IOClass": "AppleAOPAudioController",
+          "IONameMatch": [
+            "aop-audio"
+          ],
+          "IOProviderClass": "AppleSPUAppInterface",
+          "name": "AppleAOPAudioController"
+        },
+        {
+          "IOClass": "AppleAOPAudioDevice",
+          "IONameMatch": [
+            "audio-aop-edt-config"
+          ],
+          "IOProbeScore": 1000,
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioDeviceProvider",
+          "IOPropertyMatch": {
+            "compatible": "aop-audio-control"
+          },
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioDeviceProvider"
+        },
+        {
+          "IOClass": "AppleAOPAudioFWdtAssetManagerDevice",
+          "IONameMatch": [
+            "audio-fwdt-asset-mgr"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioFWdtAssetManagerDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioHallDevice",
+          "IONameMatch": [
+            "audio-hall",
+            "audio-aop-hall"
+          ],
+          "IOProviderClass": "IOService",
+          "name": "AppleAOPAudioHallDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioDeviceProvider",
+          "IOPropertyMatch": {
+            "compatible": "aop-audio-haptic"
+          },
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioHapticControlDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioDeviceProvider",
+          "IOPropertyMatch": {
+            "compatible": "aop-audio-hpdbg"
+          },
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioHapticDebugControlDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioHapticLEAP",
+          "IONameMatch": [
+            "audio-aop-haptic-leap",
+            "audio-haptic-leap"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioHapticLEAP"
+        },
+        {
+          "IOClass": "AppleAOPAudioLEAP",
+          "IONameMatch": [
+            "audio-aop-leap",
+            "audio-leap"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioLEAP"
+        },
+        {
+          "IOClass": "AppleAOPAudioLEAPClientManager",
+          "IONameMatch": [
+            "audio-aop-hapticmgr",
+            "audio-hapticmgr"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioLEAPClientManager"
+        },
+        {
+          "IOClass": "AppleAOPAudioLPMicInDevice",
+          "IONameMatch": [
+            "audio-lp-mic-in",
+            "audio-aop-lp-mic-in"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioLPMicInDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioMCA2Device",
+          "IONameMatch": [
+            "audio-mca0",
+            "audio-mca1"
+          ],
+          "IOProbeScore": 1000,
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioMCA2Device "
+        },
+        {
+          "IOClass": "AppleAOPAudioPCMAssetManagerDevice",
+          "IONameMatch": [
+            "audio-aop-pcmaudiomgr",
+            "audio-pcmaudiomgr",
+            "audio-hw-pcm-audiomgr"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioPCMAssetManagerDevice"
+        },
+        {
+          "IOClass": "AppleAOPAudioPDM2Device",
+          "IONameMatch": [
+            "audio-aop-pdm2",
+            "audio-pdm2"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioPDM2Device"
+        },
+        {
+          "IOClass": "AppleAOPAudioSpeakerClientManager",
+          "IONameMatch": [
+            "audio-aop-spkrmgr",
+            "audio-spkrmgr"
+          ],
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioSpeakerClientManager"
+        },
+        {
+          "IOClass": "AppleAOPAudioDeviceProvider",
+          "IOPropertyMatch": {
+            "compatible": "aop-audio-speaker"
+          },
+          "IOProviderClass": "AppleAOPAudioDeviceNode",
+          "name": "AppleAOPAudioSpeakerControlDevice"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 1958,
+      "version": "600.1",
+      "windows_contract": "Windows audio driver plus AOP/codec/amp protocol, DMA and measured speaker protection."
+    },
+    {
+      "bundle": "AppleAOP2.kext",
+      "dependencies": {
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleFirmwareKit": "1.0.0",
+        "com.apple.driver.RTBuddy": "1.0.0",
+        "com.apple.kpi.iokit": "14.0",
+        "com.apple.kpi.libkern": "14.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": null,
+      "group": "audio",
+      "identifier": "com.apple.driver.AppleAOP2",
+      "metadata_sha256": "3d560a92dab0569a002a15ffeee995557d76c1644915e702a2986fcbbd8a70cd",
+      "personalities": [
+        {
+          "IOClass": "AppleAOP2KextTightbeamEndpoint",
+          "IONameMatch": [
+            "aop2.system-iopm-aop2.system-iopm.ap.client-rev"
+          ],
+          "IOProviderClass": "AFKEndpointInterface",
+          "name": "AOP2AFKTightbeamEndpoints"
+        },
+        {
+          "IOClass": "AFKEPKextV2",
+          "IONameMatch": [
+            "AOP2Endpoint1",
+            "AOP2Endpoint2",
+            "AOP2Endpoint3",
+            "AOP2Endpoint4",
+            "AOP2Endpoint5",
+            "AOP2Endpoint6",
+            "AOP2Endpoint7",
+            "AOP2Endpoint8",
+            "AOP2Endpoint9",
+            "AOP2Endpoint10",
+            "AOP2Endpoint11",
+            "AOP2Endpoint12",
+            "AOP2Endpoint13",
+            "AOP2Endpoint14",
+            "AOP2Endpoint15",
+            "AOP2Endpoint16",
+            "AOP2Endpoint17",
+            "AOP2Endpoint18",
+            "AOP2Endpoint19",
+            "AOP2Endpoint20",
+            "AOP2Endpoint21",
+            "AOP2Endpoint22",
+            "AOP2Endpoint23",
+            "AOP2Endpoint24"
+          ],
+          "IOProviderClass": "RTBuddyEndpointService",
+          "name": "AOP2Endpoints"
+        },
+        {
+          "IOClass": "AFKFirmwareService",
+          "IOPropertyMatch": {
+            "role": "AOP2"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "AOP2FirmwareService"
+        },
+        {
+          "IOClass": "AppleAOP2IOPMService",
+          "IONameMatch": [
+            "aop2.system-iopm-aop2.system-iopm.ap.client-rev"
+          ],
+          "IOProviderClass": "AppleAOP2KextTightbeamEndpoint",
+          "name": "AppleAOP2IOPMService"
+        },
+        {
+          "IOClass": "AppleAOP2SystemDriver",
+          "IONameMatch": [
+            "system-manager"
+          ],
+          "IOProviderClass": "AFKMailboxEndpointInterface",
+          "name": "AppleAOP2SystemDriver"
+        }
+      ],
+      "present_in_boot_collection": false,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 0,
+      "version": "1.0",
+      "windows_contract": "Windows audio driver plus AOP/codec/amp protocol, DMA and measured speaker protection."
+    },
+    {
+      "bundle": "AppleBCMWLANBusInterfacePCIeMac.kext",
+      "dependencies": {
+        "com.apple.driver.AppleBCMWLANCoreMac": "1.0.0",
+        "com.apple.driver.AppleOLYHALMac": "1.0",
+        "com.apple.driver.IOImageLoader": "1.0",
+        "com.apple.driver.corecapture": "1.0.0",
+        "com.apple.iokit.CoreAnalyticsFamily": "1.0",
+        "com.apple.iokit.IO80211Family": "1.5.0",
+        "com.apple.iokit.IONetworkingFamily": "1.5.0",
+        "com.apple.iokit.IOPCIFamily": "1.0.0",
+        "com.apple.iokit.IOSkywalkFamily": "1.0",
+        "com.apple.kpi.bsd": "8.0.0",
+        "com.apple.kpi.iokit": "8.0.0",
+        "com.apple.kpi.libkern": "8.0.0",
+        "com.apple.kpi.mach": "8.0.0",
+        "com.apple.kpi.private": "8.0.0",
+        "com.apple.kpi.unsupported": "8.0.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": null,
+      "group": "network",
+      "identifier": "com.apple.driver.AppleBCMWLANBusInterfacePCIeMac",
+      "metadata_sha256": "84553c3882ac619fc4ee7d46976eab832ac2c3b8170443cb58f0b7e8e3ced0bc",
+      "personalities": [
+        {
+          "IOClass": "AppleBCMWLANBusInterfacePCIe",
+          "IONameMatch": [
+            "pci14e4,4425"
+          ],
+          "IOProviderClass": "IOPCIDevice",
+          "name": "80211PCI"
+        },
+        {
+          "IOClass": "AppleBCMWLANBusInterfacePCIe",
+          "IONameMatch": "APP00DA",
+          "IOProviderClass": "IOACPIPlatformDevice",
+          "name": "80211PCI-AMFM"
+        }
+      ],
+      "present_in_boot_collection": false,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 0,
+      "version": "1",
+      "windows_contract": "NDIS or NetAdapterCx network implementation plus PCIe/firmware/power protocol."
+    },
+    {
+      "bundle": "AppleBCMWLANCoreMac.kext",
+      "dependencies": {
+        "com.apple.driver.AppleMobileFileIntegrity": "1.0.1",
+        "com.apple.driver.AppleOLYHALMac": "1.0",
+        "com.apple.driver.IOImageLoader": "1.0",
+        "com.apple.driver.corecapture": "1.0.0",
+        "com.apple.driver.mDNSOffloadUserClient": "1.0.0d7",
+        "com.apple.iokit.CoreAnalyticsFamily": "1.0",
+        "com.apple.iokit.IO80211Family": "1.5.0",
+        "com.apple.iokit.IONetworkingFamily": "1.5.0",
+        "com.apple.iokit.IOPCIFamily": "2.7.3",
+        "com.apple.iokit.IOSerialFamily": "11.0",
+        "com.apple.iokit.IOSkywalkFamily": "1.0",
+        "com.apple.iokit.IOTimeSyncFamily": "500.10",
+        "com.apple.kec.corecrypto": "1.0",
+        "com.apple.kpi.bsd": "8.0.0",
+        "com.apple.kpi.iokit": "8.0.0",
+        "com.apple.kpi.libkern": "8.0.0",
+        "com.apple.kpi.mach": "8.0.0",
+        "com.apple.kpi.private": "8.0.0",
+        "com.apple.kpi.unsupported": "8.0.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": null,
+      "group": "network",
+      "identifier": "com.apple.driver.AppleBCMWLANCoreMac",
+      "metadata_sha256": "be7462b1387a54512923db3b56969b2db3ebf0edf1df789fa86bde173b484fb1",
+      "personalities": [
+        {
+          "IOClass": "AppleBCMWLANCore",
+          "IOProviderClass": "AppleBCMWLANBusInterfacePCIe",
+          "name": "AppleBCMWLAN PCIe"
+        }
+      ],
+      "present_in_boot_collection": false,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 0,
+      "version": "1.0.0",
+      "windows_contract": "NDIS or NetAdapterCx network implementation plus PCIe/firmware/power protocol."
+    },
+    {
+      "bundle": "RTBuddy.kext",
+      "dependencies": {
+        "com.apple.driver.AppleA7IOP": "1.0",
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.IOSlaveProcessor": "1.0.0",
+        "com.apple.iokit.CoreAnalyticsFamily": "1.0",
+        "com.apple.iokit.IOReportFamily": "1.0",
+        "com.apple.kec.corecrypto": "1.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 13192752,
+        "virtual_address": "0xfffffe0007c98e30"
+      },
+      "group": "coprocessors",
+      "identifier": "com.apple.driver.RTBuddy",
+      "metadata_sha256": "47232263893cea375537491b5249099fc0a2e6668150a6c4a38914119e295ed2",
+      "personalities": [
+        {
+          "IOClass": "RTBuddy",
+          "IONameMatch": "iop-nub,rtbuddy-v2",
+          "IOProviderClass": "AppleA7IOPNub",
+          "name": "RTBuddy"
+        },
+        {
+          "IOClass": "RTBuddy64",
+          "IONameMatch": "iop-nub,rtbuddy",
+          "IOProviderClass": "AppleA7IOPNub",
+          "name": "RTBuddy64"
+        },
+        {
+          "IOClass": "RTBuddyARG",
+          "IONameMatch": "iop-nub,rtbuddy-arg",
+          "IOProviderClass": "AppleA7IOPNub",
+          "name": "RTBuddyARG"
+        },
+        {
+          "IOClass": "RTBuddyRouteOnly",
+          "IONameMatch": "iop-nub,rtbuddy-route-only",
+          "IOProviderClass": "AppleA7IOPNub",
+          "name": "RTBuddyRouteOnly"
+        },
+        {
+          "IOClass": "RTBuddyService",
+          "IOProbeScore": 1000,
+          "IOProviderClass": "RTBuddy",
+          "name": "RTBuddyService"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 4329,
+      "version": "1.0.0",
+      "windows_contract": "Bounded RTKit mailbox transport with firmware ABI qualification; SEP authentication is optional and unimplemented."
+    },
+    {
+      "bundle": "RTBuddyV3.kext",
+      "dependencies": {
+        "com.apple.driver.AppleA7IOP": "1.0",
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleRemoteIOP": "1.0",
+        "com.apple.driver.IOSlaveProcessor": "1.0.0",
+        "com.apple.driver.RTBuddy": "1.0",
+        "com.apple.iokit.IOReportFamily": "1.0",
+        "com.apple.kec.corecrypto": "1.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": null,
+      "group": "coprocessors",
+      "identifier": "com.apple.driver.RTBuddyV3",
+      "metadata_sha256": "eff1325aaec80c0d403a6cb9e4241000731bbfede384c1d692a28f29d53c2b9c",
+      "personalities": [
+        {
+          "IOClass": "RTBuddyV3",
+          "IOProviderClass": "AppleRemoteIOP",
+          "name": "RTBuddyV3"
+        }
+      ],
+      "present_in_boot_collection": false,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 0,
+      "version": "1.0.0",
+      "windows_contract": "Bounded RTKit mailbox transport with firmware ABI qualification; SEP authentication is optional and unimplemented."
+    },
+    {
+      "bundle": "AppleSEPManager.kext",
+      "dependencies": {
+        "com.apple.driver.AppleA7IOP": "1.0.1",
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.IODARTFamily": "1.0.0",
+        "com.apple.driver.IOSlaveProcessor": "1.0.0",
+        "com.apple.kec.corecrypto": "1.0",
+        "com.apple.kpi.bsd": "8.0",
+        "com.apple.kpi.iokit": "8.0",
+        "com.apple.kpi.libkern": "8.0",
+        "com.apple.kpi.mach": "8.0",
+        "com.apple.kpi.private": "8.0",
+        "com.apple.kpi.unsupported": "8.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 7311024,
+        "virtual_address": "0xfffffe00076fceb0"
+      },
+      "group": "coprocessors",
+      "identifier": "com.apple.driver.AppleSEPManager",
+      "metadata_sha256": "7d41d9fca4a4f9ba21f90a245cef066b660401b4443dc7a204d577cc2edfb047",
+      "personalities": [
+        {
+          "IOClass": "AppleSEPManager",
+          "IONameMatch": "iop-nub,sep",
+          "IOProviderClass": "AppleA7IOPNub",
+          "name": "A7IOPNub"
+        },
+        {
+          "IOClass": "AppleSEPARTRequestsService",
+          "IONameMatch": "sep-endpoint,artr",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "ARTRequestsDevice"
+        },
+        {
+          "IOClass": "AppleSEPARTService",
+          "IOProviderClass": "AppleSEPManager",
+          "name": "ARTService"
+        },
+        {
+          "IOClass": "AppleSEPARTStorageService",
+          "IONameMatch": "sep-endpoint,arts",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "ARTStorageDevice"
+        },
+        {
+          "IOClass": "AppleSEPDebugService",
+          "IONameMatch": "sep-endpoint,debu",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "DebugDevice"
+        },
+        {
+          "IOClass": "AppleSEPHiloService",
+          "IONameMatch": "sep-endpoint,hilo",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "HiloDevice"
+        },
+        {
+          "IOClass": "AppleSEPIntelIOP",
+          "IONameMatch": "SEPM",
+          "IOProviderClass": "IOPCIDevice",
+          "name": "IntelIOP"
+        },
+        {
+          "IOClass": "AppleSEPManager",
+          "IONameMatch": "iop-nub,sep",
+          "IOProviderClass": "AppleSEPIntelIOPNub",
+          "name": "IntelIOPNub"
+        },
+        {
+          "IOClass": "AppleSEPLoggerService",
+          "IONameMatch": "sep-endpoint,log",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "LoggingDevice"
+        },
+        {
+          "IOClass": "AppleSEPPairing",
+          "IONameMatch": "sep-endpoint,pair",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "PairingDevice"
+        },
+        {
+          "IOClass": "AppleSEPTestingService",
+          "IONameMatch": "sep-endpoint,unit",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "TestingDevice"
+        },
+        {
+          "IOClass": "AppleSEPXARTService",
+          "IONameMatch": "sep-endpoint,xarm",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "xARTMasterDevice"
+        },
+        {
+          "IOClass": "AppleSEPXARTService",
+          "IONameMatch": "sep-endpoint,xars",
+          "IOProviderClass": "AppleSEPDeviceService",
+          "name": "xARTSlaveDevice"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 2643,
+      "version": "1.0.1",
+      "windows_contract": "Bounded RTKit mailbox transport with firmware ABI qualification; SEP authentication is optional and unimplemented."
+    },
+    {
+      "bundle": "IONVMeFamily.kext",
+      "dependencies": {
+        "com.apple.driver.AppleA7IOP": "1.0.0",
+        "com.apple.driver.AppleARMPlatform": "1.0.0",
+        "com.apple.driver.AppleEmbeddedPCIE": "1.0.0",
+        "com.apple.driver.AppleMobileFileIntegrity": "1.0.1",
+        "com.apple.driver.AppleNANDConfigAccess": "1.0.0",
+        "com.apple.driver.AppleSMC": "1.0.0",
+        "com.apple.driver.IOSlaveProcessor": "1.0",
+        "com.apple.driver.RTBuddy": "1.0.0",
+        "com.apple.iokit.IOHIDFamily": "1.0",
+        "com.apple.iokit.IOPCIFamily": "1.0.0",
+        "com.apple.iokit.IOStorageFamily": "1.7.0",
+        "com.apple.kec.corecrypto": "1.0",
+        "com.apple.kpi.bsd": "9.0.0",
+        "com.apple.kpi.iokit": "9.0.0",
+        "com.apple.kpi.libkern": "9.0.0",
+        "com.apple.kpi.mach": "9.0.0",
+        "com.apple.kpi.private": "9.0.0",
+        "com.apple.kpi.unsupported": "9.0.0"
+      },
+      "executable_in_bundle": false,
+      "fileset": {
+        "file_offset": 11316192,
+        "virtual_address": "0xfffffe0007acebe0"
+      },
+      "group": "storage",
+      "identifier": "com.apple.iokit.IONVMeFamily",
+      "metadata_sha256": "e45f8e9c7bfdd1c02ce73292db9b7151e9f3aae674eaa84eaa6c6b717525cc31",
+      "personalities": [
+        {
+          "IOClass": "AppleANS2CGNVMeController",
+          "IOPropertyMatch": {
+            "role": "ANS2"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "AppleANS2CGNVMeController"
+        },
+        {
+          "IOClass": "AppleANS2CGv2Controller",
+          "IOPropertyMatch": {
+            "role": "ANS2"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "AppleANS2CGv2Controller"
+        },
+        {
+          "IOClass": "AppleANS2DARTNVMeController",
+          "IOPropertyMatch": {
+            "role": "ANS2"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "AppleANS2DARTNVMeController"
+        },
+        {
+          "IOClass": "AppleANS2NVMeController",
+          "IOPropertyMatch": {
+            "role": "ANS2"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "AppleANS2NVMeController"
+        },
+        {
+          "IOClass": "AppleANS3CGv2Controller",
+          "IOPropertyMatch": {
+            "role": "ANS2"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "AppleANS3CGv2Controller"
+        },
+        {
+          "IOClass": "AppleANS3NVMeController",
+          "IOPropertyMatch": {
+            "role": "ANS2"
+          },
+          "IOProviderClass": "RTBuddyService",
+          "name": "AppleANS3NVMeController"
+        },
+        {
+          "IOClass": "AppleEmbeddedNVMeController",
+          "IOProviderClass": "IOPCIDevice",
+          "name": "AppleEmbeddedNVMeController"
+        },
+        {
+          "IOClass": "IONVMeController",
+          "IOProbeScore": 100,
+          "IOProviderClass": "IOPCIDevice",
+          "name": "GenericNVMeSSD"
+        },
+        {
+          "IOClass": "NVMeSEPNotifier",
+          "IOProviderClass": "AppleSEPManager",
+          "name": "NVMeSEPNotifier"
+        }
+      ],
+      "present_in_boot_collection": true,
+      "status": "inventoried; protocol and Windows implementation unqualified",
+      "symbol_count": 4735,
+      "version": "2.1.0",
+      "windows_contract": "Preserve the existing synthetic NVMe bridge first; a native replacement requires Windows storage miniport and ANS protocol qualification."
+    }
+  ],
+  "format_version": 1,
+  "kernel_macho_sha256": "e9ae6b36085aed3622dc0f80d71154164ef5ee9d19ab53c0ea5d73f62c8f0d59",
+  "missing_paths": []
+}
