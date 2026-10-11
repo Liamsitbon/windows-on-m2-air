@@ -22,6 +22,7 @@ int main(void) {
     assert(d.interface_id==2 && !strcmp(d.name,"keyboard"));
     assert(d.descriptor_size==3 && d.descriptor==init+26);
     assert(d.product_size==4 && d.product==init+33);
+    init[20]=0xff; assert(dchid_parse_discovery(init,37,&d)==DCHID_OK && d.more_packets==1); init[20]=0;
     for (size_t n=0;n<22;n++) assert(dchid_parse_discovery(init,n,&d)==DCHID_INCOMPLETE && !d.descriptor);
     for (size_t n=23;n<29;n++) assert(dchid_parse_discovery(init,n,&d)==DCHID_BAD_HEADER && !d.descriptor);
     init[36]=1; assert(dchid_parse_discovery(init,37,&d)==DCHID_BAD_HEADER && !d.descriptor); init[36]=0;

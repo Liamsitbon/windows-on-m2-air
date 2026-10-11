@@ -56,6 +56,13 @@ class J413PlatformTests(unittest.TestCase):
                 'Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c',
                 'Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf',
                 'Silicon/Apple/AppleSiliconPkg/Drivers/SimpleFbDxe/SimpleFbDxe.c',
+                'Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c',
+                'Silicon/Apple/AppleSiliconPkg/Drivers/AppleDartIoMmuDxe/AppleDartIoMmuDxe.c',
+                'Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.inf',
+                'Silicon/Apple/AppleSiliconPkg/Drivers/AppleDartIoMmuDxe/AppleDartIoMmuDxe.inf',
+                'Silicon/Apple/AppleSiliconPkg/Include/Drivers/AppleDartIoMmuDxe.h',
+                'Silicon/Apple/AppleSiliconPkg/AppleSiliconPkg.dec',
+
             ):
                 destination=mu/relative
                 destination.parent.mkdir(parents=True, exist_ok=True)

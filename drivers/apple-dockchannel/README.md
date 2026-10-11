@@ -20,8 +20,7 @@ body length can overflow. The encoder does not transmit or advance the sequence.
 Buffers and output views must be disjoint as documented in the header.
 
 `core/hid_stream.c` now assembles a frame across partial FIFO reads in caller-owned storage. It stops exactly at one complete frame, preserves extra input for the caller, and latches malformed-header/checksum/capacity failures until explicit transport recovery and reset. A complete view lives until reset; calls must be serialized. The adapter still owns timeouts/removal. Transport framing is not a HID descriptor parser or report delivery driver.
-ACK flags, sequence, report number and return status still need matching against
-a serialized outstanding command. Firmware loading,
+`core/hid_command.c` matches ACK channel, interface, sequence, flags and report ID against one serialized outstanding command. It returns the remote status and exact response length, advances sequence on completion/cancellation, rejects mismatched or late replies, and never silently truncates a response. Live firmware transfer,
 helper-coprocessor startup, GPIO resets and Windows HID enumeration remain absent.
 No input device, IRQ, DART mapping or physical register was exercised.
 
@@ -49,3 +48,27 @@ they do not make built-in input usable at Windows Boot Manager Recovery.
 concatenated frames, sticky transport errors, untrusted initialization lengths,
 fixed-width names and GPIO block boundaries under ASan/UBSan, and compiles both
 new cores as Windows ARM64 COFF.
+
+## Commands and firmware preparation
+
+The command core follows the pinned Asahi `dchid_cmd`/`dchid_handle_ack`
+transaction fields. Initialize state while transport is quiescent, serialize
+TX/RX/cancel, then begin before transmitting. On send failure or timeout, cancel
+and recover partial FIFO transmission before issuing another frame. The core
+does not retry automatically. Sequence numbers wrap after 256 commands; matching
+is not replay protection across reset or arbitrarily delayed full wraps. Insufficient
+response storage leaves the command pending and writes no bytes. A nonzero remote
+return code completes the command without delivering its response as valid HID data.
+
+`core/hid_firmware.c` validates the HIDF v1 header and declared data/patch bounds,
+copies data to caller-owned storage and patches a nonzero interface offset as in
+Asahi `dchid_get_firmware`. Short headers, overflowing lengths, unsupported version,
+invalid interface and insufficient destination capacity leave output untouched.
+This is format validation, not signature or hardware compatibility verification.
+No Apple firmware is distributed. No DMA allocation, mapping or transfer occurs.
+
+The command/firmware tests exercise wrong-channel/interface/sequence/flags/report
+ACKs, cancellation, sequence wrap, remote errors, every flags byte, insufficient
+response capacity, short/oversized firmware fields, immutable input and randomized
+archives under ASan/UBSan; both cores compile as Windows ARM64 COFF. These components
+still need an actual transport/power/IRQ/DART adapter and Windows HID publication.

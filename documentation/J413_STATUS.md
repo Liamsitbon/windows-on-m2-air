@@ -134,3 +134,5 @@ both stages (EXP-20261011-J413-013). It excludes takeover and interactive proxy
 fallback; failed startup stops visibly. The earlier UART candidate is superseded.
 See J413_BOOT_EXPERIMENT.md for the current hash and existing ESP install command.
 No new physical UEFI or Windows success is claimed.
+
+EXP022 adds owning Mu USB initialization/DART validation and readiness fixes, plus DockChannel command matching and bounded HIDF firmware preparation. See [source defects and integration boundaries](J413_USB_DART_FIXES.md). Current artifact/runtime evidence is recorded in the experiment ledger; these additions have no new physical input or GPU result.

@@ -19,9 +19,9 @@ enum dchid_status dchid_parse_discovery(const uint8_t *data, size_t size,
     *output = next;
     if (!data) return DCHID_INVALID;
     if (size < 22) return DCHID_INCOMPLETE;
-    if (data[0] != 0xf0 || data[3] >= 16 || data[20] > 1 ||
+    if (data[0] != 0xf0 || data[3] >= 16 ||
         !copy_name(next.name, data + 4, 16)) return DCHID_BAD_HEADER;
-    next.interface_id = data[3]; next.more_packets = data[20];
+    next.interface_id = data[3]; next.more_packets = data[20] != 0;
     size_t offset = 22;
     int have_gpio = 0, have_product = 0, have_descriptor = 0;
     while (offset < size) {
