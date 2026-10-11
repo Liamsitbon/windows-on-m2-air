@@ -56,20 +56,42 @@ The independent M2 RTKit/HID protocol cores are not linked Windows drivers.
 
 ## Recovery and the next physical checkpoint
 
-The available Air must be rebooted to its **paired recoveryOS in 1TR** to
-personalize a raw boot kernel for the existing UEFI stub. The locally inspected
-Asahi `Finish Installation.app/.../step2.sh` enforces that pairing, requests
-owner credentials for bputil/kmutil and ends with a user-confirmed reboot. Do
-not invoke it unattended or apply its command to the active macOS system volume.
-[Official Asahi boot-process documentation](https://asahilinux.org/docs/alt/boot-process-guide/)
-explains the machine-specific signing and internal bootstrap requirement.
+An existing Asahi UEFI installation can provide the machine-personalized stage 1;
+a new Asahi installation is not a prerequisite. First identify the screen actually
+reached by that entry and the payload it loads. An entry named `UEFI boot`, or an
+APFS `Bootable` flag, alone does not identify U-Boot, Mu or Windows progress.
 
-The internal ESP currently cannot be mounted. This experiment can instead be
-personalized directly as the stub's raw kernel through Recovery, after staging
-it in that stub's Finish Installation resources. This is a different boot path
-from the old Asahi stage-1 reader loading `/m1n1/boot.bin` from the ESP. Its use
-must be recorded as a new hardware experiment; do not claim the ESP was repaired.
-The mounted APFS stub is currently read only, so no replacement was performed.
+EXP-20261011-J413-012 inspected the original Finish Installation resource, not the
+active personalized kernel. It has an m1n1 v1.9.9 marker and a `chainload=` setting
+whose PARTUUID matches the existing internal ESP and whose path is `m1n1/boot.bin`.
+The preserved ESP copy contains a nested autonomous Windows image, SHA-256
+`6c6f7c9d7fd532b9475f07ed2828987fc25a9cbe25f6b7f9d7803a43f2d6983e`.
+Its two manifests decode correctly, but its flags, Mu FD and provenance differ
+from this clean candidate. It is not established as a working M2 baseline.
+Neither these bytes nor the stage-1 staging file prove what the current boot
+policy actually launches.
+
+The preferred integration path, if that existing stage 1 is active, is a backed-up
+replacement of the assigned internal ESP's `m1n1/boot.bin`. It preserves stage-1
+personalization. The internal ESP currently cannot be mounted in macOS, so no
+such update was performed and no writable/raw-disk workaround is assumed safe.
+Verify a writable mount and the live old payload before choosing this path;
+retain a byte-identical recovery copy and record a separate install experiment.
+The raw nested candidate is not a PE/COFF `BOOTAA64.EFI` executable to copy onto
+an external drive or launch from a U-Boot UEFI menu. Mu runs under the m1n1 guest
+shim in this project; generic UEFI availability does not qualify Windows.
+[Official Asahi boot-process documentation](https://asahilinux.org/docs/alt/boot-process-guide/)
+describes the personalized stage 1, assigned internal ESP and external UEFI media.
+
+Direct raw-kernel personalization into the existing APFS stub remains an alternate
+route when an ESP update cannot be made. It requires the stub's **paired recoveryOS
+in 1TR** and changes the boot kernel/path. The locally inspected Asahi
+`Finish Installation.app/.../step2.sh` enforces that pairing, requests owner
+credentials for bputil/kmutil and ends with a user-confirmed reboot. Do not invoke
+it unattended or target the active macOS system volume. Existing UEFI alone does
+not require rerunning this step. The previously prepared private Recovery commands
+are conditional on deliberately selecting this alternate route. No replacement
+or personalization occurred; the mounted APFS stub stayed read only.
 
 Preserve the original raw-kernel staging file and the separately captured
 internal ESP image. Returning to macOS uses the power-button startup picker.
