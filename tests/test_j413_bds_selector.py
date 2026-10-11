@@ -33,7 +33,13 @@ typedef struct {MEDIA *Media;} EFI_BLOCK_IO_PROTOCOL;
 typedef struct {int complete;} EFI_SIMPLE_FILE_SYSTEM_PROTOCOL;
 typedef struct {int id;} EFI_DEVICE_PATH_PROTOCOL;
 typedef struct {int ready;} EFI_BOOT_MANAGER_LOAD_OPTION;
-static int gEfiSimpleFileSystemProtocolGuid,gEfiBlockIoProtocolGuid;
+static int gEfiSimpleFileSystemProtocolGuid,gEfiBlockIoProtocolGuid,gJ413UsbDartReadyProtocolGuid;
+typedef struct {unsigned ControllerMask;} J413_USB_DART_READY;
+static void J413LogStatus(const char *s,int v){(void)s;(void)v;}
+static void J413LogCount(const char *s,size_t v){(void)s;(void)v;}
+static void J413Checkpoint(const char *s,int v){(void)s;(void)v;}
+static EFI_STATUS locate_protocol(int *guid,void *key,void **out){(void)guid;(void)key;*out=NULL;return EFI_NOT_FOUND;}
+
 static BOOLEAN mSetupSelected;
 static struct {void *ConOut;} table={0};
 #define gST (&table)
@@ -48,7 +54,7 @@ static EFI_STATUS locate(int type,int *guid,void *key,UINTN *count,EFI_HANDLE **
  *count=3;*out=malloc(3*sizeof(EFI_HANDLE));for(int i=0;i<3;i++)(*out)[i]=(void*)(uintptr_t)(i+1);return 0;}
 static EFI_STATUS handle(EFI_HANDLE h,int *guid,void **out){int i=(int)(uintptr_t)h-1;assert(i>=0&&i<3);
  if(probe_null){*out=NULL;return 0;}*out=guid==&gEfiBlockIoProtocolGuid?(void*)&block[i]:(void*)&fs[i];return 0;}
-static struct {EFI_STATUS (*LocateHandleBuffer)(int,int*,void*,UINTN*,EFI_HANDLE**);EFI_STATUS (*HandleProtocol)(EFI_HANDLE,int*,void**);} services={locate,handle};
+static struct {EFI_STATUS (*LocateHandleBuffer)(int,int*,void*,UINTN*,EFI_HANDLE**);EFI_STATUS (*HandleProtocol)(EFI_HANDLE,int*,void**);EFI_STATUS (*LocateProtocol)(int*,void*,void**);} services={locate,handle,locate_protocol};
 #define gBS (&services)
 static EFI_DEVICE_PATH_PROTOCOL *FileDevicePath(EFI_HANDLE h,const wchar_t *name){assert(!wcscmp(name,WINDOWS_FALLBACK_LOADER));if(path_fail)return NULL;EFI_DEVICE_PATH_PROTOCOL *p=malloc(sizeof(*p));p->id=(int)(uintptr_t)h;return p;}
 static EFI_STATUS EfiBootManagerInitializeLoadOption(EFI_BOOT_MANAGER_LOAD_OPTION *o,int number,int type,int attr,const wchar_t *name,EFI_DEVICE_PATH_PROTOCOL *p,void *opts,int length){

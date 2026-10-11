@@ -26,6 +26,8 @@ struct FS {int (*OpenVolume)(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL*,EFI_FILE_PROTOCOL*
 static struct {void *ConOut;} table={0};
 #define gST (&table)
 static int Print(const CHAR16 *s,...){(void)s;return 0;}
+static void J413LogStatus(const char *s,int v){(void)s;(void)v;}
+typedef char CHAR8;
 static int missing=-1,opens,closes,root_fail;static EFI_FILE_PROTOCOL root,file;
 static int close_file(EFI_FILE_PROTOCOL *p){(void)p;closes++;return 0;}
 static int open_file(EFI_FILE_PROTOCOL *r,EFI_FILE_PROTOCOL **out,CHAR16 *name,int mode,int attrs){
