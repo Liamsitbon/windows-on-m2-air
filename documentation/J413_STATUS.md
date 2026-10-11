@@ -7,15 +7,25 @@ pointing gitlinks at unpublished submodule commits.
 
 | Component | Software evidence | Hardware evidence |
 | --- | --- | --- |
-| J413 Mu firmware overlay | CLANGPDB DEBUG build completed; 97 EFI images verified | No J413 firmware launch |
+| J413 Mu firmware overlay | CLANGPDB DEBUG build completed; 97 EFI images verified | Operator reached Windows Boot Manager Recovery; EXP018; installed image hash unknown |
 | CPU / virtual GIC description | Eight enabled GICC entries, 4E+4P MPIDRs and efficiency classes; 64-bit GICR address | No Windows CPU startup |
-| Framebuffer contract | 2560×1664, stride 10240, allocation `0x1040000` | No Windows scanout |
+| Framebuffer contract | 2560×1664, stride 10240, allocation `0x1040000` | Windows Boot Manager Recovery visible; no kernel/accelerated scanout proof |
 | AIC2 USB1 routing | Physical IRQ 1112 → virtual INTID 857; incoming/EOI/capacity host tests | No Windows USB/DART qualification |
 | DockChannel FIFO | Original portable bounded core and fake-register tests | No live FIFO access or HID publication |
 | RTKit management | MIT source adaptation from official Asahi; version/endpoint/power plans and Windows ARM64 COFF compilation | No live coprocessor negotiation |
 | DockChannel HID framing | MIT source adaptation; packet/checksum/bounds tests under ASan/UBSan; Windows ARM64 COFF compilation | No keyboard/trackpad enumeration |
 | GPU / DCP | G14G and DCP bundle inventory and interface mapping | No M2 GPU command or accelerated frame |
 | Power, audio, WLAN, SEP | Bundle matching/dependency inventory | No Windows driver qualification |
+
+The latest physical result is Windows Boot Manager Recovery `0xc000000f`,
+recorded in EXP-20261011-J413-018. This is not Windows Setup or kernel startup.
+Built-in keyboard/trackpad did not respond; USB input has not been tried.
+The current text-only firmware candidate has not been physically qualified.
+
+DockChannel now also has bounded partial-read frame assembly and initialization
+event parsing (EXP021). These portable components have no live hardware adapter.
+The existing AppleInput Windows package targets the J313 SPI transport; it must
+not be relabelled as a J413 DockChannel driver.
 
 ## Primary evidence and ownership
 

@@ -9,7 +9,7 @@ source changes or extracted Apple code were imported.
 | --- | --- | --- |
 | [rtkit.c](https://github.com/AsahiLinux/linux/blob/77cb8f24c2381a8abb7272d7bbdec548d6426a8a/drivers/soc/apple/rtkit.c) | [RTKit management](../drivers/apple-rtkit/README.md) | Version negotiation, endpoint bitmap/start plans, power ACKs; host checks and Windows ARM64 COFF compilation |
 | [dockchannel.c](https://github.com/AsahiLinux/linux/blob/77cb8f24c2381a8abb7272d7bbdec548d6426a8a/drivers/soc/apple/dockchannel.c) | [FIFO core](../drivers/apple-dockchannel/core/dockchannel.c) | Bounded word/byte transfers behind callbacks; fake-register tests |
-| [dockchannel-hid.c](https://github.com/AsahiLinux/linux/blob/77cb8f24c2381a8abb7272d7bbdec548d6426a8a/drivers/hid/dockchannel-hid/dockchannel-hid.c) | [HID packet core](../drivers/apple-dockchannel/README.md) | Command framing/checksum and bounded borrowed views; ASan/UBSan and Windows ARM64 COFF compilation |
+| [dockchannel-hid.c](https://github.com/AsahiLinux/linux/blob/77cb8f24c2381a8abb7272d7bbdec548d6426a8a/drivers/hid/dockchannel-hid/dockchannel-hid.c) | [HID packet core](../drivers/apple-dockchannel/README.md) | Command framing/checksum, partial-frame assembly and initialization block views; ASan/UBSan and Windows ARM64 COFF compilation |
 
 The FIFO core predates these adaptations and is an original implementation of
 the inspected register contract. The management and HID framing cores are
@@ -49,13 +49,10 @@ M2; the compiled Mu component and these protocol cores do not resolve them.
 ## Remaining integration boundaries
 
 RTKit system endpoints need bounded shared-buffer/log handlers, mailbox IRQ/RX,
-transport failure recovery and reset ownership. DockChannel HID needs packet
-assembly, outstanding-command matching, initialization descriptors, helper CPU,
+transport failure recovery and reset ownership. DockChannel HID now has packet assembly and bounded initialization descriptor parsing. It still needs outstanding-command matching, multi-event discovery accumulation, helper CPU,
 GPIO, device firmware and Windows HID publication. Trackpad firmware must be
 validated and loaded under an established DART contract. GPU/DCP needs its own
 firmware ABI, queues, synchronization and WDDM/display implementation; management
 messages alone do not provide graphics acceleration.
 
-The next hardware checkpoint remains a recoverable clean J413 UEFI launch with
-live reservations and USB ownership validated, followed by the Windows Setup
-screen. No device has been driven by these components in this checkpoint.
+EXP018 records physical progress to Windows Boot Manager Recovery 0xc000000f; the exact installed artifact is unknown. The next hardware checkpoint is complete readable Setup media selection and Windows Setup, with USB ownership still unqualified. No device has been driven by these components in this checkpoint.
