@@ -9,11 +9,14 @@ SHA and duration were not provided; the source/hash match cannot be asserted
 from a photo alone. Original photo SHA:
 `eb307a72f19d32a338f2d6b82990beca9ce27d7d6d6b933336c8ea3b5077b8ef`.
 
+EXP017 subsequently shows placement passing with ADT=0x5c000, TC=0x58000, SEP=0x5dc000 and log=0x40000, then source region 2 rejected. That region is the framebuffer at 0xbe18b0000, above usable-end 0xbde568000 but within full physical DRAM. The earlier source guard incorrectly equated usable allocation memory with readable DRAM. Photo SHA: `272dcad3f72961191f96bef9c6960017525eb6ca8c694bbe4a936195705d17b5`.
+
 ## Confirmed defects and corrections
 
 | Layer | Confirmed source defect | Correction and executable evidence |
 |---|---|---|
-| m1n1 placement | TC must fit a <0xb4000 gap; SEP/log must fit a 0x534000 gap even when later guest RAM is available | Keep fixed ADT/FD/BA pointers; pack auxiliary data after BA below 0x85e000000. Sanitized tests use independent oversized TC/SEP values, exact-end and overflow cases. Actual live sizes remain unknown. |
+| m1n1 source bounds | Framebuffer carveout incorrectly rejected above usable-end | Use ram_base + mem_size_actual, as the pinned MMU does; retain overflow, guest-overlap and actual MCC TZ exclusions. Execute the production validator under ASan/UBSan against the exact photographed framebuffer and negative cases. Guest allocation cap stays unchanged. |
+| m1n1 placement | TC must fit a <0xb4000 gap; SEP/log must fit a 0x534000 gap even when later guest RAM is available | Keep fixed ADT/FD/BA pointers; pack auxiliary data after BA below 0x85e000000. Sanitized tests use independent oversized TC/SEP values, exact-end and overflow cases. EXP017 photo supplies all dimensions and confirms the new placement passes. |
 | m1n1 failure reporting | Missing/malformed properties and arena rejection share the same size-error message | Separate property failures; print live sizes, full FD reservation, destination pointers and arena limit before copying. |
 | Mu PEI memory | Boot ADT/BA/TC/SEP/log have no reserved HOBs and can be allocated over | Reserve [ADT,FD) and [FD+PcdFdSize,top_of_kernel_data); actual reservation function tested with realistic split HOBs and uncovered/overflow cases. Bounds are checked and failure returns EFI error. |
 | Mu PrePi stack | Clear cursor compared with size instead of end; base depends on cursor hack; caller-saved size used across cache calls | J413 alone clears [base,end), preserves base/size in x23/x24, drops -0x40 adjustment. Actual assembly runs natively in ARM64 build container with guard pages and cache clobber stubs; all 128 KB clear and arguments match. |
@@ -42,7 +45,7 @@ J413 PCD/FDF and ACPI. This is a targeted source audit, not proof of all hardwar
 
 | Area inspected | Evidence and next falsifiable checkpoint |
 |---|---|
-| Host/guest memory and protected regions | Source buffers, DCP carveouts and bounded host heap checked before copies. Photo's guest end lies below observed MCC/TZ high-DRAM regions. Other carveout-map entries include normal DRAM; blanket unmapping would be incorrect. Need the next actual boot-data trace. |
+| Host/guest memory and protected regions | Source buffers, DCP carveouts and bounded host heap checked before copies. Photo's guest end lies below observed MCC/TZ high-DRAM regions. Other carveout-map entries include normal DRAM; blanket unmapping would be incorrect. The source guard and full visible placement replay pass in software. Fresh read-only macOS capture checks all eight CPU register-property containers, eleven arm-io ranges and seven protected/DCP regions. See [sanitized source audit](../investigation/j413-source-memory-audit.json); it does not execute RVBAR writes or EL2 mappings. |
 | No-proxy policy | Both nested flags=1; previous source/native boundary tests and photographed halt agree. Normal guest IRQ/timer handling remains. |
 | CPU/vGIC/PSCI | Target and topology gates passed before the photo's stop. Collection still uses a boot-CPU template for secondaries; CPU_ON and Windows timer progress have no runtime evidence. The generic PSCI unsupported-chip default remains outside this target's preflight gate. |
 | Display | macOS physical framebuffer was alive; source checks the guest surface contract. Mu GOP handoff and accelerated Windows output still require real testing. |
@@ -52,10 +55,10 @@ J413 PCD/FDF and ACPI. This is a targeted source audit, not proof of all hardwar
 
 ## Candidate and operator checkpoint
 
-Current candidate: `dist/j413/boot-experiment/boot.bin`, 2513984 bytes, SHA
-`a5f180de1b24c79fdedd39ee2944862b366dace275b1df5d0dbcaabb5219c800`.
+Current candidate: `dist/j413/boot-experiment/boot.bin`, 2514260 bytes, SHA
+`96478bacc22198e9b039549e6ed65cadfef004b418577d168f472c8734500efa`.
 The independent EXP014 placement/HOB, EXP015 stack, and EXP016 bookkeeping fixes
-are combined in this image; a hardware outcome alone cannot isolate one variable.
+were combined in the preceding image. EXP017 changes only the source-range guard on that baseline; a hardware outcome alone cannot isolate one variable.
 Previous no-proxy candidate and original ESP/staging-kernel recovery copies are
 preserved privately. This run changes no ESP, boot policy, partitions or installer.
 
@@ -66,8 +69,12 @@ backup and atomic replacement remain unchanged:
 sudo ./scripts/install-esp.sh install --disk disk0s4 --image dist/j413/boot-experiment/boot.bin
 ```
 
-Next expected text: `J413 BOOTDATA` sizes and destination top, then later
+Next expected text: `J413 SOURCES` physical DRAM/usable-end, then later
 preflight/guest entry or a specific `J413 STOP`. Capture the last lines or visible
 Mu screen. A successful build is not successful Windows boot. Returning to macOS
 uses the power-button startup picker; the script's restore command restores its
 scoped ESP backup. No raw partition restore is proposed.
+
+## Upstream qualification
+
+See [primary-source comparison](J413_UPSTREAM_COMPARISON.md). The original verified Windows desktop is J313 M1 via assisted launch; neither that record nor this software replay qualifies autonomous J413 Windows boot.

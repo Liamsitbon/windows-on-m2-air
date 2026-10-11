@@ -1,10 +1,9 @@
 # J413 autonomous UEFI experiment
 
 This is a compiled, source-checked boot experiment for MacBook Air M2 J413/T8112.
-The preceding no-proxy candidate was photographed stopping before Mu in
-EXP014. The current boot-data/PrePi/PSCI corrections have not been launched.
+EXP017 photographs the preceding candidate passing the boot-data placement gate, then stopping on an incorrect framebuffer source-range guard before Mu. The current source-bound correction has not been launched.
 The next success criterion is a visible Mu UEFI checkpoint; Windows Setup, Windows CPU/timer progress, USB storage/input,
-GPU and accelerated display remain unqualified. See EXP-20261011-J413-014 through EXP-20261011-J413-016 and
+GPU and accelerated display remain unqualified. See EXP-20261011-J413-014 through EXP-20261011-J413-017 and
 [J413 boot-path audit](J413_BOOT_AUDIT.md).
 
 ## Build and identity
@@ -23,8 +22,8 @@ a silently compiled-out J413 stack loop or missing linked boot-data reservations
 changed by this script. Publication replaces the output directory only after
 verification, preserving the previous directory on a failed build.
 
-Output: `dist/j413/boot-experiment/boot.bin`, 2,513,984 bytes, SHA-256:
-`a5f180de1b24c79fdedd39ee2944862b366dace275b1df5d0dbcaabb5219c800`.
+Output: `dist/j413/boot-experiment/boot.bin`, 2,514,260 bytes, SHA-256:
+`96478bacc22198e9b039549e6ed65cadfef004b418577d168f472c8734500efa`.
 Its manifest includes exact artifacts, submodule pins/diffs, J413 source overlay
 and patch hash, DEBUG qualification, physical/debug-off profile, and TOOLCHAINS.json.
 Nested decompression/CRC checks pass and the decoded FD matches the freshly
@@ -97,7 +96,7 @@ its original base/size survive cache calls. Real source/property sizes and
 planned addresses are printed on each launch.
 The host allocator is capped below guest RAM. Live source buffers, loader,
 framebuffer and the five T8112 DCP reservations named by kboot.c must be disjoint
-from guest RAM. Oversized, missing or conflicting inputs stop with a message.
+from guest RAM. Source reads use full physical DRAM bounds and reject actual MCC protected regions, matching the owning m1n1 MMU contract. Guest allocation still uses normal usable RAM; accepting a display carveout for a source read does not make it guest-allocatable. The exact EXP017 photo values pass the production guard and planner under sanitizers. Oversized, missing or conflicting inputs stop with a named message.
 Reservations remain runtime-tested hypotheses; a build does not prove that
 Apple's live allocations, all firmware carveouts or DMA contracts are safe.
 

@@ -95,10 +95,10 @@ index 3a6a091..73eb685 100644
      io.profile = &profile;
      if (usb_plan.power_platform)
 diff --git a/src/hv_autonomous_runtime.c b/src/hv_autonomous_runtime.c
-index 83a29ba..036045b 100644
+index 83a29ba..91915a7 100644
 --- a/src/hv_autonomous_runtime.c
 +++ b/src/hv_autonomous_runtime.c
-@@ -12,7 +12,16 @@
+@@ -12,7 +12,17 @@
  #include "hv_launch_golden_j313.h"
  #include "hv_launch_j313.h"
  #include "hv_launch_preflight.h"
@@ -106,6 +106,7 @@ index 83a29ba..036045b 100644
 +#include "hv_j413_layout.generated.h"
 +#include "hv_j413_expected.h"
 +#include "hv_j413_boot_data.h"
++#include "mcc.h"
 +#define ACTIVE_AUTONOMOUS_LAYOUT J413_AUTONOMOUS_LAYOUT
 +#else
  #include "hv_autonomous_layout.generated.h"
@@ -115,7 +116,7 @@ index 83a29ba..036045b 100644
  #include "hv_autonomous_memory.h"
  #include "hv_autonomous_profile.h"
  #include "hv_vgic.h"
-@@ -42,7 +51,7 @@ struct hv_autonomous_runtime {
+@@ -42,7 +52,7 @@ struct hv_autonomous_runtime {
  static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
                                           const struct hv_autonomous_payload *payload)
  {
@@ -124,7 +125,7 @@ index 83a29ba..036045b 100644
      const struct hv_contract_snapshot *reference = &runtime->golden[0];
      struct hv_launch_j313_host_state *state = &runtime->base_state;
  
-@@ -64,6 +73,9 @@ static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
+@@ -64,6 +74,9 @@ static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
      state->regions[HV_CONTRACT_REGION_FIRMWARE].base = layout->firmware_base;
      state->regions[HV_CONTRACT_REGION_FIRMWARE].size = ALIGN_UP(payload->uncompressed_size,
                                                                  HV_ASSISTED_ALIGNMENT);
@@ -134,7 +135,7 @@ index 83a29ba..036045b 100644
      state->regions[HV_CONTRACT_REGION_ADT].base = layout->adt_base;
      state->regions[HV_CONTRACT_REGION_ADT].size = ALIGN_UP(cur_boot_args.devtree_size,
                                                             HV_ASSISTED_ALIGNMENT);
-@@ -200,10 +212,49 @@ static bool map_arm_io_ranges(void)
+@@ -200,10 +213,77 @@ static bool map_arm_io_ranges(void)
      return true;
  }
  
@@ -175,6 +176,34 @@ index 83a29ba..036045b 100644
 +    }
 +    return true;
 +}
++
++/* Match memory.c's physical identity map, not the smaller allocatable RAM
++ * interval. Display/firmware carveouts can lie above phys_base + mem_size. */
++static bool j413_validate_source_region(const char *name, u64 base, u64 size,
++                                        u64 guest_base, u64 guest_size)
++{
++    if (!size)
++        return true;
++    if (!mem_size_actual || mem_size_actual > UINT64_MAX - ram_base ||
++        !hv_j413_range_inside(base, size, ram_base, ram_base + mem_size_actual)) {
++        printf("J413 STOP: source %s outside physical DRAM base=%#lx size=%#lx DRAM=%#lx+%#lx\n",
++               name, base, size, ram_base, mem_size_actual);
++        return false;
++    }
++    if (!hv_j413_ranges_disjoint(base, size, guest_base, guest_size)) {
++        printf("J413 STOP: source %s overlaps guest base=%#lx size=%#lx\n", name, base, size);
++        return false;
++    }
++    for (size_t i = 0; i < mcc_carveout_count; i++) {
++        if (!hv_j413_ranges_disjoint(base, size, mcc_carveouts[i].base,
++                                     mcc_carveouts[i].size)) {
++            printf("J413 STOP: source %s overlaps protected MCC region %zu\n", name, i);
++            return false;
++        }
++    }
++    return true;
++}
++
 +#endif
 +
  static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
@@ -185,7 +214,7 @@ index 83a29ba..036045b 100644
      struct boot_args guest_args = cur_boot_args;
      u64 trust_cache[2] = {0};
      u64 sepfw[2] = {0};
-@@ -212,6 +263,85 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -212,6 +292,84 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
      void *guest_adt = (void *)layout->adt_base;
      int guest_memory_map;
  
@@ -236,17 +265,16 @@ index 83a29ba..036045b 100644
 +        {trust_cache[0], trust_cache[1]}, {sepfw[0], sepfw[1]},
 +        {preoslog[0], preoslog[1]}, {(u64)runtime->firmware, runtime->firmware_size},
 +    };
++    const char *const source_names[] = {
++        "loader", "ADT", "framebuffer", "TrustCache", "SEPFW", "preoslog", "Mu FD",
++    };
++    printf("J413 SOURCES: physical DRAM=%#lx+%#lx usable-end=%#lx\n",
++           ram_base, mem_size_actual, cur_boot_args.phys_base + cur_boot_args.mem_size);
 +    for (u32 i = 0; i < ARRAY_SIZE(source_regions); i++) {
-+        if (!source_regions[i][1])
-+            continue;
-+        if (!hv_j413_range_inside(source_regions[i][0], source_regions[i][1],
-+                                  cur_boot_args.phys_base,
-+                                  cur_boot_args.phys_base + cur_boot_args.mem_size) ||
-+            !hv_j413_ranges_disjoint(source_regions[i][0], source_regions[i][1],
-+                                     layout->phys_base, runtime->ram_end - layout->phys_base)) {
-+            printf("J413 STOP: source region %u overlaps guest or is outside RAM\n", i);
++        if (!j413_validate_source_region(source_names[i], source_regions[i][0],
++                                         source_regions[i][1], layout->phys_base,
++                                         runtime->ram_end - layout->phys_base))
 +            return false;
-+        }
 +    }
 +    /* Preserve the live T8112 display coprocessor reservations described in
 +     * kboot.c:disp_reserved_regions_t8112. Mu must never allocate over them. */
@@ -271,7 +299,7 @@ index 83a29ba..036045b 100644
      if (source_memory_map < 0 ||
          !read_memory_map_region(adt, source_memory_map, "TrustCache", trust_cache, true) ||
          !read_memory_map_region(adt, source_memory_map, "SEPFW", sepfw, true) ||
-@@ -226,11 +356,17 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -226,11 +384,17 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
          runtime->guest_layout.boot_args_base != layout->boot_args_base ||
          runtime->guest_layout.top_of_kernel_data > layout->ramdisk_base)
          return false;
@@ -289,7 +317,7 @@ index 83a29ba..036045b 100644
      memcpy((void *)runtime->guest_layout.sepfw_base, (void *)sepfw[0], sepfw[1]);
      if (preoslog[1])
          memcpy((void *)runtime->guest_layout.preoslog_base, (void *)preoslog[0], preoslog[1]);
-@@ -282,7 +418,11 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -282,7 +446,11 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
          guest_args.rv3.mem_size_actual = guest_args.mem_size;
      memcpy((void *)runtime->guest_layout.boot_args_base, &guest_args, sizeof(guest_args));
  
@@ -301,7 +329,7 @@ index 83a29ba..036045b 100644
      ic_ivau_range((void *)runtime->guest_layout.firmware_base, runtime->firmware_size);
      dc_cvau_range(guest_adt, cur_boot_args.devtree_size);
      dc_cvau_range((void *)runtime->guest_layout.trust_cache_base, trust_cache[1]);
-@@ -303,7 +443,7 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -303,7 +471,7 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
  
  static bool map_stage2(const struct hv_autonomous_runtime *runtime)
  {
@@ -310,7 +338,7 @@ index 83a29ba..036045b 100644
  
      if (!hv_init())
          return false;
-@@ -341,10 +481,24 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -341,10 +509,24 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
                            struct hv_autonomous_status *status, void *opaque)
  {
      struct hv_autonomous_runtime *runtime = opaque;
@@ -336,7 +364,7 @@ index 83a29ba..036045b 100644
              if (!hv_autonomous_profile_decode(payload->flags, &runtime->profile) ||
                  payload->layout_version != layout->layout_version ||
                  payload->uncompressed_size > layout->firmware_max_size ||
-@@ -373,10 +527,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -373,10 +555,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
               * its dynamic IRQ route when the device is actually declared.
               * A declared but malformed device remains fail-closed: hv_init()
               * will omit the route and POST_HV_INIT will reject the mismatch. */

@@ -1,0 +1,236 @@
+{
+  "qualification": "read-only macOS property checks; no EL2/MMIO/Windows runtime proof",
+  "installed_ram_bytes": 17179869184,
+  "photo_framebuffer": "0xbe18b0000",
+  "photo_framebuffer_size": "0x1040000",
+  "photo_usable_end": "0xbde568000",
+  "guest_base": "0x850000000",
+  "guest_end": "0xa00000000",
+  "cpu_properties": [
+    {
+      "name": "cpu0",
+      "reg": "0x0",
+      "cpu_impl_reg_bytes": 16
+    },
+    {
+      "name": "cpu1",
+      "reg": "0x1",
+      "cpu_impl_reg_bytes": 16
+    },
+    {
+      "name": "cpu2",
+      "reg": "0x2",
+      "cpu_impl_reg_bytes": 16
+    },
+    {
+      "name": "cpu3",
+      "reg": "0x3",
+      "cpu_impl_reg_bytes": 16
+    },
+    {
+      "name": "cpu4",
+      "reg": "0x100",
+      "cpu_impl_reg_bytes": 16
+    },
+    {
+      "name": "cpu5",
+      "reg": "0x101",
+      "cpu_impl_reg_bytes": 16
+    },
+    {
+      "name": "cpu6",
+      "reg": "0x102",
+      "cpu_impl_reg_bytes": 16
+    },
+    {
+      "name": "cpu7",
+      "reg": "0x103",
+      "cpu_impl_reg_bytes": 16
+    }
+  ],
+  "protected_and_dcp_region_checks": {
+    "2": {
+      "base": "0xbe6db8000",
+      "size": "0x19000000",
+      "guest_disjoint": true
+    },
+    "4": {
+      "base": "0xbde614000",
+      "size": "0x1d20000",
+      "guest_disjoint": true
+    },
+    "49": {
+      "base": "0x800214000",
+      "size": "0x70c000",
+      "guest_disjoint": true
+    },
+    "50": {
+      "base": "0xbe15f0000",
+      "size": "0x2bc000",
+      "guest_disjoint": true
+    },
+    "57": {
+      "base": "0xbe5c30000",
+      "size": "0x1000000",
+      "guest_disjoint": true
+    },
+    "94": {
+      "base": "0xbe58e0000",
+      "size": "0x350000",
+      "guest_disjoint": true
+    },
+    "95": {
+      "base": "0xbe5820000",
+      "size": "0xc0000",
+      "guest_disjoint": true
+    }
+  },
+  "arm_io_range_count": 11,
+  "resources": {
+    "usb-drd1": {
+      "compatible": [
+        "usb-drd,t8112"
+      ],
+      "adt_reg_pairs": [
+        [
+          "0x502280000",
+          "0x11800"
+        ],
+        [
+          "0x502200000",
+          "0x4000"
+        ],
+        [
+          "0x50228c000",
+          "0x5800"
+        ],
+        [
+          "0x502a84000",
+          "0x4000"
+        ],
+        [
+          "0x502800000",
+          "0x4000"
+        ],
+        [
+          "0x502a80000",
+          "0x4000"
+        ],
+        [
+          "0x502000000",
+          "0x4000"
+        ],
+        [
+          "0x502080000",
+          "0x4000"
+        ],
+        [
+          "0x50228d000",
+          "0x4000"
+        ]
+      ],
+      "physical_reg_pairs": [
+        [
+          "0x502280000",
+          "0x11800"
+        ],
+        [
+          "0x502200000",
+          "0x4000"
+        ],
+        [
+          "0x50228c000",
+          "0x5800"
+        ],
+        [
+          "0x502a84000",
+          "0x4000"
+        ],
+        [
+          "0x502800000",
+          "0x4000"
+        ],
+        [
+          "0x502a80000",
+          "0x4000"
+        ],
+        [
+          "0x502000000",
+          "0x4000"
+        ],
+        [
+          "0x502080000",
+          "0x4000"
+        ],
+        [
+          "0x50228d000",
+          "0x4000"
+        ]
+      ],
+      "aic_irqs": [
+        1112,
+        1113,
+        1114,
+        1115,
+        1071
+      ]
+    },
+    "dart-usb1": {
+      "compatible": [
+        "dart,t8110"
+      ],
+      "adt_reg_pairs": [
+        [
+          "0x502f00000",
+          "0x4000"
+        ],
+        [
+          "0x502f80000",
+          "0x4000"
+        ]
+      ],
+      "physical_reg_pairs": [
+        [
+          "0x502f00000",
+          "0x4000"
+        ],
+        [
+          "0x502f80000",
+          "0x4000"
+        ]
+      ],
+      "aic_irqs": [
+        1116
+      ]
+    },
+    "uart0": {
+      "compatible": [
+        "uart-1,samsung"
+      ],
+      "adt_reg_pairs": [
+        [
+          "0x35200000",
+          "0x4000"
+        ]
+      ],
+      "physical_reg_pairs": [
+        [
+          "0x235200000",
+          "0x4000"
+        ]
+      ],
+      "aic_irqs": [
+        739
+      ]
+    }
+  },
+  "unverified": [
+    "boot-time source addresses beyond visible photo",
+    "RVBAR writes",
+    "stage-2/vGIC/PSCI hardware execution",
+    "Mu entry",
+    "USB DMA and storage",
+    "Windows Setup",
+    "WDDM/GPU"
+  ]
+}
