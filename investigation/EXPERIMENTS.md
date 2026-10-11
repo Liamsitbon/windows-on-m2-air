@@ -6918,3 +6918,58 @@ No hardware was launched. Verdict: corrected descriptor and host firmware build
 confirmed; physical UART and every J413 Windows runtime contract unqualified.
 The next hardware experiment and recovery requirements are unchanged.
 Final root test log SHA-256: `9741ac8524d351b50891cf8522a2224ff40ce8b2da47f5245504a7c820de6d1b`.
+
+## EXP-20261011-J413-003 — prepare external Windows Setup media, host only
+
+Before preparation, 2026-10-11 UTC: the user requested an external-SSD Windows
+Setup boot attempt and identified the attached SanDisk Extreme 2TB, volume
+Untitled 2, as the intended disk. Read-only inventory found an exFAT data
+partition with ARM64 BOOTAA64.EFI, a 630231583-byte ARM64 Windows PE/Setup boot.wim
+and a 7612941295-byte install.wim. Its 209715200-byte FAT32 EFI partition cannot
+hold this boot.wim. An internal UEFI-only APFS stub and 500170752-byte ESP exist;
+ESP inspection awaits user administrator authentication. No bootloader files,
+partition map or security settings have been changed.
+
+Source: clean-fork main 2b4117a7eed6b251e9febfd2a9e039c3a5e659ec; same pinned
+m1n1/Mu and staged J413 overlays as EXP002. The autonomous runtime still uses
+J313_AUTONOMOUS_LAYOUT and the J313 golden launch snapshots, so the current
+J413 FD is not an installable standalone M2 Windows boot image. Do not bypass
+that contract or label existing U-Boot as a complete Windows hardware layer.
+
+Plan: create a new 10GiB FAT32 GPT sparse image solely in the ignored local
+workspace, copy the existing ARM64 Setup files, split the oversized install.wim
+with wimlib into FAT32-sized SWM parts, and verify media contents. Omit the
+existing autounattend.xml from this manual Setup test copy; it contains account
+credentials and automatic OOBE settings. Do not execute it or publish its
+contents. No disk wipe/install command is authorized by this preparation.
+
+Commands: hdiutil create/attach on the new local image only; Python byte copy
+excluding metadata directories and install.wim; wimlib-imagex split with 3800MiB
+parts; wimlib-imagex verify on source boot.wim and prepared split set. Evidence:
+.local/external-winsetup/PREFLIGHT.json, MEDIA.json and preparation log. Expected
+checkpoint is intact FAT32 Setup media with ARM64 fallback EFI path and no file
+>=4GiB. Recovery is detach/delete this new local image; original SSD contents
+and current macOS remain untouched. No hardware launch is planned until M2
+bootstrap, USB ownership, resource placement and a recovery path are qualified.
+
+After preparation, 2026-10-11 UTC: the FAT32 copy completed with 964 files.
+All byte-copied files matched source SHA-256. The split installation WIM and
+ARM64 boot WIM passed wimlib resource verification. No file reaches 4GiB.
+- sources/install.swm: 3981883451 bytes; SHA-256 `7a16002f6ac9f2b6d2d4eeb4aa990eb87344b2fa157b8fa23041490393c472b7`.
+- sources/install2.swm: 3604356140 bytes; SHA-256 `951cd710136629c9ff0e2fe2237a97782d474ce311a4f2dbd97bd0c61cca64d7`.
+- sources/boot.wim: 630231583 bytes; SHA-256 `dcf58a3d6be5d8747ba8b475f6bbc3782a53bc5dc14c7b11e73ff140deeab534`.
+Local sparse image: 8528105472 bytes; SHA-256 `5b23eb02d5e40b8439ebcc553add9b1d1404431605f6241a47b870b4da3c17d6`.
+- .local/external-winsetup/MEDIA.json SHA-256 `907a982f689de12733b565ca328c66fb8dfd3be69e9a70e56637bb7d8613e18e`.
+- .local/external-winsetup/PREFLIGHT.json SHA-256 `3d16a47dcb8d9fc96ed706bd10fc387f87cd80e0bea95e3fcb2e0513cc296079`.
+- .local/external-winsetup/prepare.log SHA-256 `ff82353b9763d4f838def4b518793df1451a34cb417826bb9674934cdb0a226e`.
+The newly created disk image was detached cleanly. Original external Setup
+files were not modified and no physical partition was formatted. Read-only
+internal ESP mount and bputil display failed without administrator
+authentication; the user was asked to mount the observed disk0s4 read-only.
+No password was requested in chat and no Recovery setup was launched.
+
+Verdict: installer file preparation and WIM integrity confirmed; J413 Windows
+boot remains unqualified and unattempted. Main blockers are the absent J413
+autonomous launch contract and uninspected active internal ESP. The external
+SSD has not been deployed with the prepared FAT32 filesystem. No claim of a
+Windows boot logo, kernel, Setup UI, USB runtime or installed OS is made.

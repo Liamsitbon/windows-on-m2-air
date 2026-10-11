@@ -106,3 +106,5 @@ the current recovery state. Do not install this component as a complete boot
 image. The next experiment must record its exact artifact and recovery path in
 `investigation/EXPERIMENTS.md`; first seek an observable UEFI checkpoint, then
 qualify Windows/CPU/timer/storage before DMA, GPU or additional peripherals.
+
+External installer preparation: [observed SSD and boot boundaries](J413_EXTERNAL_SETUP.md).
