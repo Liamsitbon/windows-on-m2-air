@@ -103,8 +103,10 @@ The inherited firmware/ADT/boot-argument/ramdisk reservations in
 measured safe live M2 placement. A launch must first translate live ADT resources,
 validate all physical reservations and establish a reversible log/recovery path.
 Only the target Air is available; the upstream assisted workflow assumes a
-second host and cannot be adopted as-is. No standalone M2 launcher or complete
-boot image is provided yet.
+second host and cannot be adopted as-is. A board-specific autonomous UEFI experiment is now compiled;
+[build and recovery boundaries](J413_BOOT_EXPERIMENT.md) describe its runtime
+gates and exact unlaunched artifact. It is not a hardware-qualified Windows
+boot image.
 
 No partition, boot policy, ESP or running hardware state was changed. macOS is
 the current recovery state. Do not install this component as a complete boot

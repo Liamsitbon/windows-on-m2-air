@@ -7,7 +7,10 @@ import argparse
 import hashlib
 import json
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 J313_GUEST_CONTRACT = {
     "layout_version": 1,
@@ -160,6 +163,10 @@ def create_manifest(
                 digest.update(source.relative_to(overlay_dir).as_posix().encode() + b"\0")
                 digest.update(source.read_bytes())
         data["platform_overlay_sha256"] = digest.hexdigest()
+        if "boot.bin" in artifacts:
+            from tools.j413_platform import m1n1_sources_sha256
+            data["platform_m1n1_sources_sha256"] = m1n1_sources_sha256(root)
+            data["qualification"] = "experimental-source-contract-no-hardware-launch"
     path = artifact_dir / "MANIFEST.json"
     temporary = path.with_suffix(".json.new")
     temporary.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -189,6 +196,9 @@ def verify_manifest(
         raise ManifestError("J413 has no hardware-qualified release")
     if platform == "j413" and len(data.get("platform_overlay_sha256", "")) != 64:
         raise ManifestError("J413 firmware source overlay provenance is missing")
+    if platform == "j413" and "boot.bin" in data.get("artifacts", {}):
+        if len(data.get("platform_m1n1_sources_sha256", "")) != 64 or data.get("qualification") != "experimental-source-contract-no-hardware-launch":
+            raise ManifestError("J413 experimental boot source provenance is missing")
     if expected_profile is not None and data.get("profile") != expected_profile:
         raise ManifestError(
             f"profile mismatch: expected {expected_profile}, got {data.get('profile')}"

@@ -10,7 +10,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from guest_layout import load_layout, render_dsc, validate_fdf
+from guest_layout import load_layout, render_c, render_dsc, validate_fdf
 
 MU_REVISION = "8b4dc4b4e3ff8606d0af36163acf9de79b7b4737"
 OVERLAY = ROOT / "platforms/j413/mu"
@@ -23,6 +23,9 @@ def check_overlay(root=ROOT):
     validate_fdf(layout, (platform / "MacBookAirM2.fdf").read_text())
     if (platform / "J413GuestLayout.dsc.inc").read_text() != render_dsc(layout):
         raise ValueError("J413 generated DSC include is stale")
+    generated = render_c(layout).replace("HV_AUTONOMOUS_LAYOUT_GENERATED_H", "HV_J413_LAYOUT_GENERATED_H").replace("J313_AUTONOMOUS_LAYOUT", "J413_AUTONOMOUS_LAYOUT")
+    if (root / "platforms/j413/m1n1/hv_j413_layout.generated.h").read_text() != generated:
+        raise ValueError("J413 generated m1n1 layout is stale")
     return layout
 
 
@@ -67,11 +70,33 @@ def overlay_sha256(root=ROOT):
     return digest.hexdigest()
 
 
+def m1n1_sources_sha256(root=ROOT):
+    digest = hashlib.sha256()
+    directory = root / "platforms/j413"
+    for name in ("m1n1", "patches"):
+        for path in sorted((directory / name).rglob("*")):
+            if path.is_file():
+                digest.update(path.relative_to(directory).as_posix().encode() + b"\0")
+                digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
 def stage_m1n1(root=ROOT):
     source = root / "m1n1_windows"
     revision = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
     if revision != "9cd80ac652ac404e92ae279deeaec8c629d7d184":
         raise ValueError("J413 m1n1 patches require the pinned main baseline")
+    copies = []
+    for item in sorted((root / "platforms/j413/m1n1").glob("*")):
+        if not item.is_file():
+            continue
+        relative = Path("src") / item.name
+        target = source / relative
+        if subprocess.check_output(["git", "-C", str(source), "ls-files", "--", str(relative)]):
+            raise ValueError(f"m1n1 overlay would overwrite upstream source: {relative}")
+        if target.exists() and target.read_bytes() != item.read_bytes():
+            raise ValueError(f"m1n1 overlay destination has local edits: {relative}")
+        copies.append((item, target))
     pending = []
     for patch in sorted((root / "platforms/j413/patches").glob("*.patch")):
         command = ["git", "-C", str(source), "apply", "--check"]
@@ -84,6 +109,8 @@ def stage_m1n1(root=ROOT):
         pending.append(patch)
     for patch in pending:
         subprocess.run(["git", "-C", str(source), "apply", str(patch.resolve())], check=True)
+    for item, target in copies:
+        shutil.copy2(item, target)
     return pending
 
 

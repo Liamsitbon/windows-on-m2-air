@@ -44,7 +44,7 @@ class J413PlatformTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             shutil.copytree(ROOT / "config", root / "config")
-            shutil.copytree(ROOT / "platforms/j413/mu", root / "platforms/j413/mu")
+            shutil.copytree(ROOT / "platforms/j413", root / "platforms/j413")
             mu = root / "mu"
             subprocess.run(["git", "init", "-q", str(mu)], check=True)
             subprocess.run(["git", "-C", str(mu), "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "fixture"], check=True)
@@ -85,6 +85,21 @@ class J413PlatformTests(unittest.TestCase):
             self.assertEqual(data["guest_contract"]["virtual_fb_height"], 1664)
             self.assertEqual(data["artifacts"]["J413_EFI.fd"]["role"], "guest-firmware")
             self.assertEqual(len(data["platform_overlay_sha256"]), 64)
+            # Boot provenance must include additive m1n1 sources, not merely
+            # git diff of tracked submodule files or the Mu overlay.
+            (out / "boot.bin").write_bytes(b"experimental-boot-fixture")
+            m1n1_overlay = root / "platforms/j413/m1n1"
+            m1n1_overlay.mkdir()
+            (m1n1_overlay / "fixture.c").write_text("test-loader-source")
+            path = create_manifest(root, out, "debug", "physical", "uart", ["J413_EFI.fd", "boot.bin"], compiler="test", platform="j413")
+            data = verify_manifest(path, expected_platform="j413")
+            self.assertEqual(len(data["platform_m1n1_sources_sha256"]), 64)
+            del data["platform_m1n1_sources_sha256"]
+            path.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ManifestError, "boot source provenance"):
+                verify_manifest(path)
+            path = create_manifest(root, out, "debug", "physical", "uart", ["J413_EFI.fd"], compiler="test", platform="j413")
+            data = verify_manifest(path)
             with self.assertRaisesRegex(ManifestError, "platform mismatch"):
                 verify_manifest(path, expected_platform="j313")
             data["platform"] = "j313"

@@ -1,0 +1,366 @@
+diff --git a/Makefile b/Makefile
+index 47ca58d..410b7f2 100644
+--- a/Makefile
++++ b/Makefile
+@@ -49,6 +49,10 @@ QUIET :=
+ endif
+ endif
+ 
++ifeq ($(J413),1)
++EXTRA_CFLAGS += -DM1N1_J413
++endif
++
+ BASE_CFLAGS := -O2 -Wall -g -Wundef -Werror=strict-prototypes -fno-common -fno-PIE \
+ 	-Werror=implicit-function-declaration -Werror=implicit-int \
+ 	-Wsign-compare -Wunused-parameter -Wno-multichar \
+@@ -190,6 +194,10 @@ FP_OBJECTS := \
+ 	math/powf.o \
+ 	math/powf_data.o
+ 
++ifeq ($(J413),1)
++OBJECTS += hv_j413_boot_data.o hv_j413_expected.o
++endif
++
+ BUILD_OBJS := $(patsubst %,build/%,$(OBJECTS))
+ BUILD_FP_OBJS := $(patsubst %,build/%,$(FP_OBJECTS))
+ BUILD_ALL_OBJS := $(BUILD_OBJS) $(BUILD_FP_OBJS)
+diff --git a/src/heapblock.c b/src/heapblock.c
+index 5f07f44..4319fb2 100644
+--- a/src/heapblock.c
++++ b/src/heapblock.c
+@@ -16,6 +16,15 @@
+  */
+ 
+ static void *heap_base;
++static uintptr_t heap_limit = UINT64_MAX;
++
++bool heapblock_set_limit(uint64_t end)
++{
++    if (end < (uintptr_t)heap_base || end > heap_limit)
++        return false;
++    heap_limit = end;
++    return true;
++}
+ 
+ void heapblock_init(void)
+ {
+@@ -37,7 +46,9 @@ void *heapblock_alloc_aligned(size_t size, size_t align)
+     assert((align & (align - 1)) == 0);
+     assert(heap_base);
+ 
++    assert((uintptr_t)heap_base <= UINT64_MAX - (align - 1));
+     uintptr_t block = (((uintptr_t)heap_base) + align - 1) & ~(align - 1);
++    assert(block <= heap_limit && size <= heap_limit - block);
+     heap_base = (void *)(block + size);
+ 
+     return (void *)block;
+diff --git a/src/heapblock.h b/src/heapblock.h
+index d67411d..1142fcf 100644
+--- a/src/heapblock.h
++++ b/src/heapblock.h
+@@ -6,6 +6,7 @@
+ #include "types.h"
+ 
+ void heapblock_init(void);
++bool heapblock_set_limit(uint64_t end);
+ 
+ void *heapblock_alloc(size_t size);
+ void *heapblock_alloc_aligned(size_t size, size_t align);
+diff --git a/src/hv_autonomous_boot_runtime.c b/src/hv_autonomous_boot_runtime.c
+index 3a6a091..73eb685 100644
+--- a/src/hv_autonomous_boot_runtime.c
++++ b/src/hv_autonomous_boot_runtime.c
+@@ -3,6 +3,9 @@
+ #include "hv_autonomous_boot_runtime.h"
+ 
+ #include "hv_autonomous_boot.h"
++#include "hv_autonomous_target.h"
++#include "adt.h"
++#include "utils.h"
+ #include "hv_autonomous_manifest.h"
+ #include "hv_autonomous_profile.h"
+ #include "hv_autonomous_transport.h"
+@@ -108,6 +111,13 @@ enum hv_autonomous_boot_attempt hv_autonomous_boot_if_present(bool *usb_up)
+         return HV_AUTONOMOUS_BOOT_ATTEMPT_FAILED;
+     }
+ 
++    u32 target_size = 0;
++    const char *target = adt_getprop(adt, 0, "target-type", &target_size);
++    if (!hv_autonomous_target_matches(chip_id, target, target_size)) {
++        printf("Standalone: wrong board/chip; refusing automatic guest launch chip=%#x\n", chip_id);
++        iodev_console_kick();
++        return HV_AUTONOMOUS_BOOT_ATTEMPT_FAILED;
++    }
+     hv_autonomous_profile_usb_plan(&profile, &usb_plan);
+     io.profile = &profile;
+     if (usb_plan.power_platform)
+diff --git a/src/hv_autonomous_runtime.c b/src/hv_autonomous_runtime.c
+index 83a29ba..36d80b2 100644
+--- a/src/hv_autonomous_runtime.c
++++ b/src/hv_autonomous_runtime.c
+@@ -12,7 +12,16 @@
+ #include "hv_launch_golden_j313.h"
+ #include "hv_launch_j313.h"
+ #include "hv_launch_preflight.h"
++#ifdef M1N1_J413
++#include "hv_j413_layout.generated.h"
++#include "hv_j413_expected.h"
++#include "hv_j413_boot_data.h"
++#define ACTIVE_AUTONOMOUS_LAYOUT J413_AUTONOMOUS_LAYOUT
++#else
+ #include "hv_autonomous_layout.generated.h"
++#define ACTIVE_AUTONOMOUS_LAYOUT J313_AUTONOMOUS_LAYOUT
++#endif
++#include "hv_autonomous_target.h"
+ #include "hv_autonomous_memory.h"
+ #include "hv_autonomous_profile.h"
+ #include "hv_vgic.h"
+@@ -42,7 +51,7 @@ struct hv_autonomous_runtime {
+ static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
+                                          const struct hv_autonomous_payload *payload)
+ {
+-    const struct hv_autonomous_layout *layout = &J313_AUTONOMOUS_LAYOUT;
++    const struct hv_autonomous_layout *layout = &ACTIVE_AUTONOMOUS_LAYOUT;
+     const struct hv_contract_snapshot *reference = &runtime->golden[0];
+     struct hv_launch_j313_host_state *state = &runtime->base_state;
+ 
+@@ -64,6 +73,9 @@ static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
+     state->regions[HV_CONTRACT_REGION_FIRMWARE].base = layout->firmware_base;
+     state->regions[HV_CONTRACT_REGION_FIRMWARE].size = ALIGN_UP(payload->uncompressed_size,
+                                                                 HV_ASSISTED_ALIGNMENT);
++#ifdef M1N1_J413
++    state->regions[HV_CONTRACT_REGION_FIRMWARE].size = layout->firmware_max_size;
++#endif
+     state->regions[HV_CONTRACT_REGION_ADT].base = layout->adt_base;
+     state->regions[HV_CONTRACT_REGION_ADT].size = ALIGN_UP(cur_boot_args.devtree_size,
+                                                            HV_ASSISTED_ALIGNMENT);
+@@ -200,10 +212,49 @@ static bool map_arm_io_ranges(void)
+     return true;
+ }
+ 
++#ifdef M1N1_J413
++static bool j413_validate_live_resources(void)
++{
++    const char *const paths[] = {"/arm-io/usb-drd1", "/arm-io/dart-usb1", "/arm-io/uart0"};
++    const u64 bases[] = {0x502280000ULL, 0x502f00000ULL, 0x235200000ULL};
++    const u32 irqs[] = {1112, 1116, 739};
++    for (u32 i = 0; i < ARRAY_SIZE(paths); i++) {
++        int trace[8];
++        int node = adt_path_offset_trace(adt, paths[i], trace);
++        u64 base;
++        u32 length = 0;
++        const u32 *irq = node < 0 ? NULL : adt_getprop(adt, node, "interrupts", &length);
++        if (node < 0 || adt_get_reg(adt, trace, "reg", 0, &base, NULL) ||
++            base != bases[i] || !irq || length < sizeof(*irq) || irq[0] != irqs[i]) {
++            printf("J413 STOP: live ADT resource mismatch index=%u\n", i);
++            return false;
++        }
++    }
++    int cpus = adt_path_offset(adt, "/cpus");
++    if (cpus < 0)
++        return false;
++    u32 seen = 0;
++    ADT_FOREACH_CHILD(adt, cpus) {
++        u32 mpidr;
++        if (ADT_GETPROP(adt, cpus, "reg", &mpidr) < 0)
++            return false;
++        int index = hv_j413_cpu_index(mpidr);
++        if (index < 0 || (seen & (1U << index)))
++            return false;
++        seen |= 1U << index;
++    }
++    if (seen != 0xff) {
++        printf("J413 STOP: live CPU topology mismatch mask=%#x\n", seen);
++        return false;
++    }
++    return true;
++}
++#endif
++
+ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+                               struct hv_autonomous_status *status)
+ {
+-    const struct hv_autonomous_layout *layout = &J313_AUTONOMOUS_LAYOUT;
++    const struct hv_autonomous_layout *layout = &ACTIVE_AUTONOMOUS_LAYOUT;
+     struct boot_args guest_args = cur_boot_args;
+     u64 trust_cache[2] = {0};
+     u64 sepfw[2] = {0};
+@@ -212,6 +263,63 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+     void *guest_adt = (void *)layout->adt_base;
+     int guest_memory_map;
+ 
++#ifdef M1N1_J413
++    const struct hv_j413_boot_slots slots = {
++        .adt = layout->adt_base, .firmware = layout->firmware_base,
++        .boot_args = layout->boot_args_base, .data_limit = layout->ramdisk_base,
++        .firmware_max = layout->firmware_max_size, .adt_max = layout->adt_max_size,
++    };
++    if (source_memory_map < 0 ||
++        !read_memory_map_region(adt, source_memory_map, "TrustCache", trust_cache, true) ||
++        !read_memory_map_region(adt, source_memory_map, "SEPFW", sepfw, true) ||
++        !read_memory_map_region(adt, source_memory_map, "preoslog", preoslog, false) ||
++        !hv_j413_boot_data_plan(&slots, cur_boot_args.devtree_size, trust_cache[1],
++                               runtime->firmware_size, sepfw[1], preoslog[1],
++                               &runtime->guest_layout)) {
++        printf("J413 STOP: live boot data does not fit fixed Mu slots\n");
++        return false;
++    }
++    /* Never copy from a live source inside guest RAM, or publish a guest map
++     * outside physical RAM. The host allocator is bounded below guest RAM. */
++    const u64 source_regions[][2] = {
++        {(u64)_base, (u64)_end - (u64)_base},
++        {(u64)adt, cur_boot_args.devtree_size},
++        {cur_boot_args.video.base, (u64)cur_boot_args.video.stride * cur_boot_args.video.height},
++        {trust_cache[0], trust_cache[1]}, {sepfw[0], sepfw[1]},
++        {preoslog[0], preoslog[1]}, {(u64)runtime->firmware, runtime->firmware_size},
++    };
++    for (u32 i = 0; i < ARRAY_SIZE(source_regions); i++) {
++        if (!source_regions[i][1])
++            continue;
++        if (!hv_j413_range_inside(source_regions[i][0], source_regions[i][1],
++                                  cur_boot_args.phys_base,
++                                  cur_boot_args.phys_base + cur_boot_args.mem_size) ||
++            !hv_j413_ranges_disjoint(source_regions[i][0], source_regions[i][1],
++                                     layout->phys_base, runtime->ram_end - layout->phys_base)) {
++            printf("J413 STOP: source region %u overlaps guest or is outside RAM\n", i);
++            return false;
++        }
++    }
++    /* Preserve the live T8112 display coprocessor reservations described in
++     * kboot.c:disp_reserved_regions_t8112. Mu must never allocate over them. */
++    int carveouts = adt_path_offset(adt, "/chosen/carveout-memory-map");
++    const char *const display_regions[] = {
++        "region-id-49", "region-id-50", "region-id-57", "region-id-94", "region-id-95",
++    };
++    for (u32 i = 0; i < ARRAY_SIZE(display_regions); i++) {
++        u64 region[2];
++        if (carveouts < 0 ||
++            !read_memory_map_region(adt, carveouts, display_regions[i], region, true) ||
++            !region[1] ||
++            !hv_j413_ranges_disjoint(region[0], region[1], layout->phys_base,
++                                     runtime->ram_end - layout->phys_base)) {
++            printf("J413 STOP: DCP carveout conflict index=%u\n", i);
++            return false;
++        }
++    }
++    if (runtime->ram_end < layout->low_mem_pa + layout->low_mem_size)
++        return false;
++#else
+     if (source_memory_map < 0 ||
+         !read_memory_map_region(adt, source_memory_map, "TrustCache", trust_cache, true) ||
+         !read_memory_map_region(adt, source_memory_map, "SEPFW", sepfw, true) ||
+@@ -226,11 +334,17 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+         runtime->guest_layout.boot_args_base != layout->boot_args_base ||
+         runtime->guest_layout.top_of_kernel_data > layout->ramdisk_base)
+         return false;
++#endif
+ 
+     memcpy(guest_adt, adt, cur_boot_args.devtree_size);
+     memcpy((void *)runtime->guest_layout.trust_cache_base, (void *)trust_cache[0], trust_cache[1]);
+     memcpy((void *)runtime->guest_layout.firmware_base, runtime->firmware,
+            runtime->firmware_size);
++#ifdef M1N1_J413
++    /* ErasePolarity=1 in the J413 FDF; populate omitted unused tail blocks. */
++    memset((void *)(runtime->guest_layout.firmware_base + runtime->firmware_size), 0xff,
++           layout->firmware_max_size - runtime->firmware_size);
++#endif
+     memcpy((void *)runtime->guest_layout.sepfw_base, (void *)sepfw[0], sepfw[1]);
+     if (preoslog[1])
+         memcpy((void *)runtime->guest_layout.preoslog_base, (void *)preoslog[0], preoslog[1]);
+@@ -282,7 +396,11 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+         guest_args.rv3.mem_size_actual = guest_args.mem_size;
+     memcpy((void *)runtime->guest_layout.boot_args_base, &guest_args, sizeof(guest_args));
+ 
++#ifdef M1N1_J413
++    dc_cvau_range((void *)runtime->guest_layout.firmware_base, layout->firmware_max_size);
++#else
+     dc_cvau_range((void *)runtime->guest_layout.firmware_base, runtime->firmware_size);
++#endif
+     ic_ivau_range((void *)runtime->guest_layout.firmware_base, runtime->firmware_size);
+     dc_cvau_range(guest_adt, cur_boot_args.devtree_size);
+     dc_cvau_range((void *)runtime->guest_layout.trust_cache_base, trust_cache[1]);
+@@ -303,7 +421,7 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+ 
+ static bool map_stage2(const struct hv_autonomous_runtime *runtime)
+ {
+-    const struct hv_autonomous_layout *layout = &J313_AUTONOMOUS_LAYOUT;
++    const struct hv_autonomous_layout *layout = &ACTIVE_AUTONOMOUS_LAYOUT;
+ 
+     if (!hv_init())
+         return false;
+@@ -341,10 +459,24 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+                           struct hv_autonomous_status *status, void *opaque)
+ {
+     struct hv_autonomous_runtime *runtime = opaque;
+-    const struct hv_autonomous_layout *layout = &J313_AUTONOMOUS_LAYOUT;
++    const struct hv_autonomous_layout *layout = &ACTIVE_AUTONOMOUS_LAYOUT;
+ 
+     switch (stage) {
+         case HV_AUTONOMOUS_STAGE_VALIDATE: {
++            u32 target_size = 0;
++            const char *target = adt_getprop(adt, 0, "target-type", &target_size);
++            if (!hv_autonomous_target_matches(chip_id, target, target_size))
++                return false;
++#ifdef M1N1_J413
++            if (!j413_validate_live_resources())
++                return false;
++            printf("J413 EXPERIMENT: source-required contract; no hardware golden parity\n");
++            if (layout->phys_base < cur_boot_args.phys_base ||
++                !heapblock_set_limit(layout->phys_base)) {
++                printf("J413 STOP: guest base overlaps live host heap/RAM\n");
++                return false;
++            }
++#endif
+             if (!hv_autonomous_profile_decode(payload->flags, &runtime->profile) ||
+                 payload->layout_version != layout->layout_version ||
+                 payload->uncompressed_size > layout->firmware_max_size ||
+@@ -373,10 +505,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+              * its dynamic IRQ route when the device is actually declared.
+              * A declared but malformed device remains fail-closed: hv_init()
+              * will omit the route and POST_HV_INIT will reject the mismatch. */
++#ifdef M1N1_J413
++            if (!hv_j413_expected_init(runtime->golden, runtime->ram_end,
++                                      cur_boot_args.devtree_size, payload->uncompressed_size)) {
++#else
+             bool apple_input_declared =
+                 adt_path_offset(adt, "/arm-io/spi3/ipd") >= 0;
+             if (!hv_launch_golden_j313_init(runtime->golden,
+                                             apple_input_declared)) {
++#endif
+                 printf("PREFLIGHT FAIL checkpoint=PRE_HV_INIT reason=golden\n");
+                 iodev_console_kick();
+                 return false;
+diff --git a/src/hv_launch_j313.c b/src/hv_launch_j313.c
+index 5fb179d..9f725b0 100644
+--- a/src/hv_launch_j313.c
++++ b/src/hv_launch_j313.c
+@@ -146,7 +146,13 @@ static struct hv_launch_j313_host_state staged;
+ bool hv_launch_j313_set_base_state(const struct hv_launch_j313_host_state *state)
+ {
+     observed_valid = false;
+-    if (!state || state->identity.target != HV_J313_TARGET ||
++    if (!state || state->identity.target !=
++#ifdef M1N1_J413
++        0x3331344aU
++#else
++        HV_J313_TARGET
++#endif
++        ||
+         state->identity.schema_revision != HV_J313_SCHEMA_REVISION || !state->cpu_count ||
+         state->cpu_count > HV_CONTRACT_MAX_CPUS || state->region_count > HV_CONTRACT_MAX_REGIONS ||
+         state->mapping_count > HV_CONTRACT_MAX_MAPPINGS ||
+@@ -160,7 +166,13 @@ bool hv_launch_j313_set_base_state(const struct hv_launch_j313_host_state *state
+ 
+ bool hv_launch_j313_publish_descriptor(const struct hv_launch_j313_descriptor *descriptor)
+ {
+-    if (!descriptor || descriptor->identity.target != HV_J313_TARGET ||
++    if (!descriptor || descriptor->identity.target !=
++#ifdef M1N1_J413
++        0x3331344aU
++#else
++        HV_J313_TARGET
++#endif
++        ||
+         descriptor->identity.schema_revision != HV_J313_SCHEMA_REVISION || !descriptor->cpu_count ||
+         descriptor->cpu_count > HV_CONTRACT_MAX_CPUS ||
+         descriptor->region_count > HV_CONTRACT_MAX_REGIONS)
