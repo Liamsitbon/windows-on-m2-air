@@ -55,8 +55,8 @@ J413 PCD/FDF and ACPI. This is a targeted source audit, not proof of all hardwar
 
 ## Candidate and operator checkpoint
 
-Current candidate: `dist/j413/boot-experiment/boot.bin`, 2520312 bytes, SHA
-`a451be44591ec389e3654e85e45b809b10bde781a7a81fa8d3124def2f21f3d9`.
+Current candidate: `dist/j413/boot-experiment/boot.bin`, 2518496 bytes, SHA
+`537dda804f96abbf89e738eb3adeb79dca19e4958c1fc172dcb5ff95a93dce2f`.
 The independent EXP014 placement/HOB, EXP015 stack, and EXP016 bookkeeping fixes
 were combined in the preceding image. EXP017 changes only the source-range guard on that baseline; a hardware outcome alone cannot isolate one variable.
 Previous no-proxy candidate and original ESP/staging-kernel recovery copies are
@@ -80,3 +80,5 @@ scoped ESP backup. No raw partition restore is proposed.
 See [primary-source comparison](J413_UPSTREAM_COMPARISON.md). The original verified Windows desktop is J313 M1 via assisted launch; neither that record nor this software replay qualifies autonomous J413 Windows boot.
 
 EXP018 photographs Windows Boot Manager Recovery (0xc000000f) with the preceding candidate; exact installed hash was not supplied. The current candidate additionally changes J413 boot presentation only. See [boot UI and recovery limits](J413_BOOT_UI_AND_RECOVERY.md). It has not been physically launched.
+
+EXP019/020 current candidate is text-only: no Windows-like mark or bar. Pre-GOP firmware UART lines use the guest surface, then stop at explicit GOP takeover; invisible host framebuffer logging is disabled. Automatic J413 Setup selection requires all four payload paths and permits removable BlockIo. External FAT32/DMA and built-in input remain unqualified; see the current [UI and media notes](J413_BOOT_UI_AND_RECOVERY.md).

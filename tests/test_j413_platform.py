@@ -55,6 +55,7 @@ class J413PlatformTests(unittest.TestCase):
                 'Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c',
                 'Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c',
                 'Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf',
+                'Silicon/Apple/AppleSiliconPkg/Drivers/SimpleFbDxe/SimpleFbDxe.c',
             ):
                 destination=mu/relative
                 destination.parent.mkdir(parents=True, exist_ok=True)

@@ -4,11 +4,17 @@ EXP018 operator images show Mu device-state color bars and then the Windows Boot
 
 ## Current presentation
 
-Both J413 m1n1 stages draw `UEFI BOOT` using the existing font and show named preparation milestones with a bar based on stages reached. They retain the local framebuffer console and flags=1/no-proxy policy. Before DCP switches to the validated guest XRGB32 surface, the surface contains a blue four-pane mark rather than an entirely blank frame. This is firmware branding, not simulated Windows kernel activity.
+EXP019 supersedes the graphical presentation after the operator reported frozen stage text and a static bar. J413 now shows UEFI BOOT and text only; the Windows-like mark and both bars are removed. Stage lines carry physical-counter millisecond timestamps. These indicate reached loader stages, not elapsed Windows loading progress.
 
-The J413 Mu provider generates a BMP with the same four-pane mark, using the existing BootGraphicsLib/BootLogo2 path. Existing temperature/low-battery graphics continue through the original FV resource interface. Device-state collection and Secure Boot configuration are preserved; only the J413 color-bar rendering is replaced with text identifying experimental firmware. Mu reports console readiness, storage discovery, EFI loader loading and handoff. The photo's bars came from ColorbarsDxe + ColorBarDisplayDeviceStateLib, not a failing panel test.
+Before GOP initialization, actual Mu UART output is buffered into bounded lines and drawn on the live validated guest surface. Each line cleans only its own text rows to the point of coherency. The inherited host framebuffer is disabled after the DCP surface switch, so firmware bytes no longer cause full-frame copies to an invisible surface. SimpleFbDxe emits a dedicated takeover marker before touching the guest framebuffer; the hypervisor text renderer stops permanently at that marker. It never draws over firmware GOP or Windows-owned graphics. This protocol and bounds are software-tested, not physically qualified.
 
-This does not replace an Apple-controlled startup-picker icon or pixels displayed before this m1n1 payload executes. It also cannot guarantee a continuously animated screen: early Mu firmware has no GOP console yet, and Windows owns its display after handoff. No unsafe hypervisor overlay writes to a framebuffer concurrently owned by Windows are added. Real physical visibility and timing of the new presentation remain unverified.
+The normal Mu boot graphic is skipped; temperature/low-battery warnings retain their original resource interface. Device-state collection and Secure Boot policy remain unchanged. Subsequent UEFI console text describes media selection and handoff. Full kernel printf text and animation are controlled by Windows, not this renderer. No faster hardware boot time is claimed without a measured physical run.
+
+## Setup media selection
+
+EXP020 corrects the J413 automatic Setup selection: the same readable filesystem must contain BOOTAA64.EFI, EFI Microsoft Boot BCD, sources/boot.wim and boot/boot.sdi. Removable BlockIo media are eligible for this target. The inherited J313 selection stays unchanged. Missing paths and no-complete-volume results are printed instead of silently selecting the known incomplete internal Setup layout.
+
+This is a Setup-specific precondition, not a generic installed-Windows discovery policy or semantic BCD/WIM validator. It does not add exFAT support or guarantee external USB/DART enumeration. A physical FAT32 Setup filesystem is still required. Other independent firmware/Windows launch paths are not globally rewritten by this predicate.
 
 ## Windows kernel/driver load text
 

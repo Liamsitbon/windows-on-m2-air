@@ -1,0 +1,47 @@
+diff --git a/src/hv_vuart.c b/src/hv_vuart.c
+index 1d7582e..f7f4f68 100644
+--- a/src/hv_vuart.c
++++ b/src/hv_vuart.c
+@@ -7,6 +7,10 @@
+ #include "uart.h"
+ #include "uart_regs.h"
+ #include "usb.h"
++#ifdef M1N1_J413
++#include "hv_j413_fw_log.h"
++#include "fb.h"
++#endif
+ 
+ bool active = false;
+ 
+@@ -53,8 +57,23 @@ static void update_irq(void)
+     }
+ }
+ 
++#ifdef M1N1_J413
++static void j413_firmware_line(const char *line, bool taken, void *opaque)
++{
++    UNUSED(opaque);
++    fb_firmware_log_line(line, taken);
++    if (hv_runtime_diag_enabled())
++        printf("FW> %s\n", line);
++}
++#endif
++
+ static void handle_vuart_passthrough(uint8_t b)
+ {
++#ifdef M1N1_J413
++    static struct hv_j413_fw_log log;
++    hv_j413_fw_log_feed(&log, b, j413_firmware_line, NULL);
++#else
++
+     if (!hv_runtime_diag_enabled())
+         return;
+ 
+@@ -74,6 +93,7 @@ static void handle_vuart_passthrough(uint8_t b)
+         sol = false;
+     }
+     printf("%c", b);
++#endif
+ }
+ 
+ static bool handle_vuart(struct exc_info *ctx, u64 addr, u64 *val, bool write, int width)

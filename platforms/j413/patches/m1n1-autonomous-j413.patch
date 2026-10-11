@@ -95,7 +95,7 @@ index 3a6a091..73eb685 100644
      io.profile = &profile;
      if (usb_plan.power_platform)
 diff --git a/src/hv_autonomous_runtime.c b/src/hv_autonomous_runtime.c
-index 83a29ba..3b7379c 100644
+index 83a29ba..0b3c2a2 100644
 --- a/src/hv_autonomous_runtime.c
 +++ b/src/hv_autonomous_runtime.c
 @@ -12,7 +12,18 @@
@@ -339,7 +339,7 @@ index 83a29ba..3b7379c 100644
  
      if (!hv_init())
          return false;
-@@ -341,10 +510,38 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -341,10 +510,40 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
                            struct hv_autonomous_status *status, void *opaque)
  {
      struct hv_autonomous_runtime *runtime = opaque;
@@ -352,8 +352,10 @@ index 83a29ba..3b7379c 100644
 +        "Switching display to UEFI", "Entering UEFI firmware"
 +    };
 +    if ((u32)stage < ARRAY_SIZE(names)) {
-+        printf("UEFI BOOT [%u/%u]: %s\n", (u32)stage + 1, (u32)HV_AUTONOMOUS_STAGE_COUNT, names[stage]);
-+        fb_boot_progress(stage, HV_AUTONOMOUS_STAGE_COUNT, names[stage]);
++        printf("UEFI BOOT t=%lu ms [%u/%u]: %s\n", ticks_to_msecs(get_ticks()),
++               (u32)stage + 1, (u32)HV_AUTONOMOUS_STAGE_COUNT, names[stage]);
++        if (stage < HV_AUTONOMOUS_STAGE_READY)
++            fb_boot_progress(stage, HV_AUTONOMOUS_STAGE_COUNT, names[stage]);
 +        iodev_console_kick();
 +    }
 +#endif
@@ -379,7 +381,7 @@ index 83a29ba..3b7379c 100644
              if (!hv_autonomous_profile_decode(payload->flags, &runtime->profile) ||
                  payload->layout_version != layout->layout_version ||
                  payload->uncompressed_size > layout->firmware_max_size ||
-@@ -373,10 +570,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -373,10 +572,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
               * its dynamic IRQ route when the device is actually declared.
               * A declared but malformed device remains fail-closed: hv_init()
               * will omit the route and POST_HV_INIT will reject the mismatch. */
@@ -395,18 +397,28 @@ index 83a29ba..3b7379c 100644
                  printf("PREFLIGHT FAIL checkpoint=PRE_HV_INIT reason=golden\n");
                  iodev_console_kick();
                  return false;
-@@ -453,6 +655,12 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -453,6 +657,12 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
          case HV_AUTONOMOUS_STAGE_READY:
              memset((void *)layout->virtual_fb_base, 0,
                     (u64)layout->virtual_fb_stride * layout->virtual_fb_height);
 +#ifdef M1N1_J413
-+            fb_guest_boot_logo(layout->virtual_fb_base, layout->virtual_fb_width,
++            fb_guest_boot_text(layout->virtual_fb_base, layout->virtual_fb_width,
 +                               layout->virtual_fb_height, layout->virtual_fb_stride);
-+            dc_cvau_range((void *)layout->virtual_fb_base,
++            dc_cvac_range((void *)layout->virtual_fb_base,
 +                          (u64)layout->virtual_fb_stride * layout->virtual_fb_height);
 +#endif
              if (runtime->profile.physical_display &&
                  display_prepare_guest_surface(
+                     layout->virtual_fb_base,
+@@ -460,6 +670,9 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+                     layout->virtual_fb_width, layout->virtual_fb_height,
+                     layout->virtual_fb_stride, 32) != 1)
+                 return false;
++#ifdef M1N1_J413
++            fb_set_active(false); // DCP now displays the guest surface, not the old host buffer.
++#endif
+             if (runtime->profile.virtual_display &&
+                 !hv_configure_fb_stream(
                      layout->virtual_fb_base,
 diff --git a/src/hv_launch_j313.c b/src/hv_launch_j313.c
 index 5fb179d..9f725b0 100644

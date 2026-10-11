@@ -1,5 +1,20 @@
+diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/SimpleFbDxe/SimpleFbDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/SimpleFbDxe/SimpleFbDxe.c
+index ad72599..e0d1fc3 100644
+--- a/Silicon/Apple/AppleSiliconPkg/Drivers/SimpleFbDxe/SimpleFbDxe.c
++++ b/Silicon/Apple/AppleSiliconPkg/Drivers/SimpleFbDxe/SimpleFbDxe.c
+@@ -181,6 +181,10 @@ SimpleFbDxeInitialize(
+   EFI_STATUS Status             = EFI_SUCCESS;
+   EFI_HANDLE hUEFIDisplayHandle = NULL;
+ 
++#ifdef J413_BOOT_CONTRACT
++  DEBUG ((DEBUG_ERROR, "\nJ413_GOP_CONSOLE_TAKEOVER\n"));
++#endif
++
+   /* Retrieve simple frame buffer from pre-SEC bootloader */
+   DEBUG(
+       (EFI_D_INFO,
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
-index 3e117b1..b422373 100644
+index 3e117b1..9175f46 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 @@ -5,6 +5,7 @@
@@ -10,7 +25,38 @@ index 3e117b1..b422373 100644
  
  #include <Guid/EventGroup.h>
  #include <Library/DebugLib.h>
-@@ -100,6 +101,12 @@ StartWindowsFromHandle (
+@@ -89,6 +90,30 @@ HasWindowsFallbackLoader (
+   return !EFI_ERROR (Status);
+ }
+ 
++#ifdef J413_BOOT_CONTRACT
++STATIC BOOLEAN HasCompleteSetupMedia(IN EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem)
++{
++  CONST CHAR16 *Paths[] = {
++    L"\\EFI\\BOOT\\BOOTAA64.EFI", L"\\EFI\\Microsoft\\Boot\\BCD",
++    L"\\sources\\boot.wim", L"\\boot\\boot.sdi"
++  };
++  EFI_FILE_PROTOCOL *Root = NULL, *File = NULL;
++  EFI_STATUS Status = FileSystem->OpenVolume(FileSystem, &Root);
++  if (EFI_ERROR(Status)) return FALSE;
++  for (UINTN Index = 0; Index < sizeof(Paths)/sizeof(Paths[0]); Index++) {
++    Status = Root->Open(Root, &File, (CHAR16 *)Paths[Index], EFI_FILE_MODE_READ, 0);
++    if (EFI_ERROR(Status)) {
++      if (gST->ConOut != NULL) Print(L"UEFI BOOT: skipping incomplete Setup volume; missing %s\r\n", Paths[Index]);
++      Root->Close(Root);
++      return FALSE;
++    }
++    File->Close(File);
++  }
++  Root->Close(Root);
++  return TRUE;
++}
++#endif
++
+ STATIC
+ EFI_STATUS
+ StartWindowsFromHandle (
+@@ -100,6 +125,12 @@ StartWindowsFromHandle (
    EFI_HANDLE                 LoaderImage;
    EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
  
@@ -23,7 +69,7 @@ index 3e117b1..b422373 100644
    LoaderPath = FileDevicePath (FileSystemHandle, WINDOWS_FALLBACK_LOADER);
    if (LoaderPath == NULL) {
      return EFI_OUT_OF_RESOURCES;
-@@ -135,6 +142,13 @@ StartWindowsFromHandle (
+@@ -135,6 +166,13 @@ StartWindowsFromHandle (
    LoadedImage->LoadOptionsSize = 0;
  
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: starting %s\n", WINDOWS_FALLBACK_LOADER));
@@ -37,6 +83,46 @@ index 3e117b1..b422373 100644
    Status = gBS->StartImage (LoaderImage, NULL, NULL);
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: StartImage returned %r\n", Status));
    gBS->UnloadImage (LoaderImage);
+@@ -161,8 +199,11 @@ TryStartWindowsFromHandle (
+                   &gEfiBlockIoProtocolGuid,
+                   (VOID **)&BlockIo
+                   );
+-  if (EFI_ERROR (Status) || (BlockIo->Media == NULL) || !BlockIo->Media->MediaPresent ||
+-      BlockIo->Media->RemovableMedia) {
++  if (EFI_ERROR (Status) || (BlockIo->Media == NULL) || !BlockIo->Media->MediaPresent
++#ifndef J413_BOOT_CONTRACT
++      || BlockIo->Media->RemovableMedia
++#endif
++      ) {
+     return FALSE;
+   }
+ 
+@@ -172,7 +213,11 @@ TryStartWindowsFromHandle (
+                   &gEfiSimpleFileSystemProtocolGuid,
+                   (VOID **)&FileSystem
+                   );
+-  if (EFI_ERROR (Status) || !HasWindowsFallbackLoader (FileSystem)) {
++  if (EFI_ERROR (Status) || !HasWindowsFallbackLoader (FileSystem)
++#ifdef J413_BOOT_CONTRACT
++      || !HasCompleteSetupMedia (FileSystem)
++#endif
++      ) {
+     return FALSE;
+   }
+ 
+@@ -257,6 +302,12 @@ WindowsAutoBootReadyToBoot (
+     }
+   }
+ 
++#ifdef J413_BOOT_CONTRACT
++  if (!mWindowsStarted && gST->ConOut != NULL) {
++    Print(L"UEFI BOOT: no complete readable Windows Setup volume found.\r\n");
++    Print(L"Setup needs BOOTAA64.EFI, BCD, boot.wim and boot.sdi on the same volume.\r\n");
++  }
++#endif
+   FreePool (Handles);
+ }
+ 
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
 index 3860c33..5615953 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
@@ -50,10 +136,20 @@ index 3860c33..5615953 100644
  
  [Protocols]
 diff --git a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
-index b2b1dd9..c62fc16 100644
+index b2b1dd9..1d8aa17 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
-@@ -803,6 +803,14 @@ DeviceBootManagerAfterConsole (
+@@ -797,12 +797,24 @@ DeviceBootManagerAfterConsole (
+ 
+   PlatformPowerLevelCheck ();
+ 
++#ifdef J413_BOOT_CONTRACT
++  Status = EFI_SUCCESS; // Text-only J413 boot; no normal boot graphic.
++#else
+   Status = DisplayBootGraphic (BG_SYSTEM_LOGO);
++#endif
+   if (EFI_ERROR (Status) != FALSE) {
+     DEBUG ((DEBUG_ERROR, "%a Unabled to set graphics - %r\n", __FUNCTION__, Status));
    }
  
    ConsoleMsgLibDisplaySystemInfoOnConsole ();

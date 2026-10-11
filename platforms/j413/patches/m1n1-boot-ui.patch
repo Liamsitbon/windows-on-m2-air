@@ -1,5 +1,5 @@
 diff --git a/src/fb.c b/src/fb.c
-index 2b85d9a..9f7ccbe 100644
+index 2b85d9a..e6fc9ab 100644
 --- a/src/fb.c
 +++ b/src/fb.c
 @@ -241,13 +241,28 @@ void fb_blit_logo(const struct image *logo)
@@ -31,7 +31,7 @@ index 2b85d9a..9f7ccbe 100644
  }
  
  void fb_restore_logo(void)
-@@ -285,6 +300,65 @@ static inline rgb_t font_get_pixel(u8 c, u32 x, u32 y)
+@@ -285,6 +300,91 @@ static inline rgb_t font_get_pixel(u8 c, u32 x, u32 y)
      return col;
  }
  
@@ -59,24 +59,24 @@ index 2b85d9a..9f7ccbe 100644
 +    u32 x = fb.width / 8, w = fb.width * 3 / 4, y = fb.height - 96;
 +    fb_fill(x, y - 40, w, 64, int2rgb(0));
 +    j413_boot_text(x, y - 40, name, 1);
-+    fb_fill(x, y, w, 8, int2rgb(0x303030));
-+    /* Completed stage count only; no simulated timing or fake kernel progress. */
-+    fb_fill(x, y, w * stage / count, 8, int2rgb(0x0078d4));
++
 +    fb_update();
 +}
 +
-+void fb_guest_boot_logo(u64 base, u32 width, u32 height, u32 stride)
++static struct {u32 *pixels; u32 width, height, stride, row; bool active;} fw_console;
++
++void fb_guest_boot_text(u64 base, u32 width, u32 height, u32 stride)
 +{
 +    /* Validated guest XRGB32 surface, drawn before DCP switches to it. */
 +    if (!base || width < 128 || height < 160 || (u64)stride < (u64)width * 4 || stride % 4)
 +        return;
-+    u32 side = min(width, height) / 10, gap = max(side / 16, 2);
-+    u32 left = (width - side * 2 - gap) / 2, top = (height - side * 2 - gap) / 2;
 +    u32 *pixels = (u32 *)base;
-+    for (u32 row = 0; row < side * 2 + gap; row++)
-+        for (u32 col = 0; col < side * 2 + gap; col++)
-+            if ((row < side || row >= side + gap) && (col < side || col >= side + gap))
-+                pixels[(top + row) * (stride / 4) + left + col] = 0x0078d4;
++    fw_console.pixels = pixels;
++    fw_console.width = width;
++    fw_console.height = height;
++    fw_console.stride = stride / 4;
++    fw_console.row = 0;
++    fw_console.active = true;
 +    const char *message = "Starting UEFI firmware";
 +    u32 text_x = width / 8, text_y = height - 112;
 +    if (console.font.width && console.font.height <= 40) {
@@ -87,27 +87,54 @@ index 2b85d9a..9f7ccbe 100644
 +                    pixels[(text_y + row) * (stride / 4) + text_x + col] = v * 0x010101;
 +                }
 +    }
-+    /* This is a firmware handoff mark, not a Windows progress claim. */
-+    for (u32 row = height - 64; row < height - 56; row++)
-+        for (u32 col = width / 8; col < width * 7 / 8; col++)
-+            pixels[row * (stride / 4) + col] = 0x303030;
++
 +}
++void fb_firmware_log_line(const char *line, bool taken)
++{
++    /* GOP is the exclusive display owner after the first explicit takeover marker. */
++    if (taken) {
++        fw_console.active = false;
++        fb_set_active(false);
++        return;
++    }
++    if (!fw_console.active || !console.font.width || !console.font.height || console.font.height > 40)
++        return;
++    u32 rows = (fw_console.height / 2 - 64) / console.font.height;
++    if (!rows) return;
++    u32 y = fw_console.height / 2 + (fw_console.row++ % rows) * console.font.height;
++    u32 *pixels = fw_console.pixels;
++    for (u32 row = 0; row < console.font.height; row++)
++        memset32(pixels + (y + row) * fw_console.stride, 0, fw_console.width * 4);
++    u32 x = 32;
++    for (; *line && x + console.font.width <= fw_console.width; line++, x += console.font.width)
++        for (u32 row = 0; row < console.font.height; row++)
++            for (u32 col = 0; col < console.font.width; col++) {
++                unsigned char c = *line;
++                if (c < 0x20 || c >= 0x7f) c = '?';
++                u32 value = font_get_pixel(c, col, row).r;
++                pixels[(y + row) * fw_console.stride + x + col] = value * 0x010101;
++            }
++    dc_cvac_range(pixels + y * fw_console.stride,
++                  (u64)console.font.height * fw_console.stride * 4);
++}
++
 +#endif
 +
  static void fb_putbyte(u8 c)
  {
      u32 x = (console.margin.cols + console.cursor.col) * console.font.width;
 diff --git a/src/fb.h b/src/fb.h
-index 08f52f4..da19ebb 100644
+index 08f52f4..06a614e 100644
 --- a/src/fb.h
 +++ b/src/fb.h
-@@ -47,6 +47,10 @@ void fb_fill(u32 x, u32 y, u32 w, u32 h, rgb_t color);
+@@ -47,6 +47,11 @@ void fb_fill(u32 x, u32 y, u32 w, u32 h, rgb_t color);
  void fb_clear(rgb_t color);
  void fb_clear_direct(void);
  
 +#ifdef M1N1_J413
 +void fb_boot_progress(u32 stage, u32 count, const char *name);
-+void fb_guest_boot_logo(u64 base, u32 width, u32 height, u32 stride);
++void fb_guest_boot_text(u64 base, u32 width, u32 height, u32 stride);
++void fb_firmware_log_line(const char *line, bool taken);
 +#endif
  void fb_display_logo(void);
  void fb_restore_logo(void);
