@@ -20,8 +20,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       curl cpio zstd device-tree-compiler \
     && rm -rf /var/lib/apt/lists/*
 
-# m1n1 has Rust components (build/librust.a), so cargo is required to build it.
-RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal \
+# The pinned m1n1 freestanding link has no libc wide-string implementation.
+# Pin Rust rather than silently using future LLVM transformations (1.99 emits
+# an unresolved wcslen in ADT code). Record this toolchain with boot artifacts.
+ARG RUST_TOOLCHAIN=1.85.1
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain ${RUST_TOOLCHAIN} \
     && /root/.cargo/bin/rustup target add aarch64-unknown-none-softfloat
 ENV PATH=/root/.cargo/bin:$PATH
 

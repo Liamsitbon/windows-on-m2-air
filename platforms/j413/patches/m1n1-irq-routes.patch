@@ -1,8 +1,16 @@
 diff --git a/src/hv.c b/src/hv.c
-index 210403b..eb77308 100644
+index 210403b..7a2b7e5 100644
 --- a/src/hv.c
 +++ b/src/hv.c
-@@ -175,6 +175,11 @@ static void hv_configure_guest_wfi(void)
+@@ -1,6 +1,7 @@
+ /* SPDX-License-Identifier: MIT */
+ 
+ #include "hv.h"
++#include "aic.h"
+ #include "hv_tick_policy.h"
+ #include "hv_runtime_diag.h"
+ #include "hv_wfx_policy.h"
+@@ -175,6 +176,11 @@ static void hv_configure_guest_wfi(void)
  
  bool hv_init(void)
  {
