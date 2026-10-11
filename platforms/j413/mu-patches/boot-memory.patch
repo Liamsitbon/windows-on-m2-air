@@ -1,0 +1,146 @@
+diff --git a/Silicon/Apple/AppleSiliconPkg/PrePi/AArch64/ModuleEntryPoint.S b/Silicon/Apple/AppleSiliconPkg/PrePi/AArch64/ModuleEntryPoint.S
+index 0811dd7..5b947da 100644
+--- a/Silicon/Apple/AppleSiliconPkg/PrePi/AArch64/ModuleEntryPoint.S
++++ b/Silicon/Apple/AppleSiliconPkg/PrePi/AArch64/ModuleEntryPoint.S
+@@ -103,10 +103,16 @@ _GetStackBase:
+   //TODO - make the PCD value work properly, for now hardcode this value.
+   MOV32 (x2, 0x20000)
+   sub   x12, x1, x2
++#ifdef J413_BOOT_CONTRACT
++  // Save the base and size across caller-saved cache routines.
++  mov   x23, x12
++  mov   x24, x2
++#else
+   //HACK for now - subtract both stack top and base by 0x40 to mitigate an ASSERT
+   //TODO - fix the root cause of the stack base being misaligned by 0x40 bytes
+   sub   x1, x1, #0x40
+   sub   x12, x12, #0x40
++#endif
+ 
+ _StackSetup:
+   //x1, top of stack
+@@ -121,8 +127,13 @@ _StackSetup:
+ _ClearStack: 
+   /* Assumes StackBase is 128-bit aligned, StackSize is a multiple of 64B */
+   st4     {v4.2d, v5.2d, v6.2d, v7.2d}, [x12], #64  /* Fill every 64 bytes */
++#ifdef J413_BOOT_CONTRACT
++  cmp     x12, x1                                   /* Exclusive stack end */
++  b.lo    _ClearStack
++#else
+   cmp     x12, x2                                   /* Compare Size */ 
+-  b.lt     _ClearStack 
++  b.lt     _ClearStack
++#endif
+ 
+   //set stack pointer to addr in x1
+   add sp, x1, xzr
+@@ -132,8 +143,13 @@ _EnableCaches:
+   bl ASM_PFX(ArmEnableDataCache)
+ 
+ _PrepareArgumentsAndJump:
++#ifdef J413_BOOT_CONTRACT
++  mov x0, x23 //Unmodified stack base
++  mov x1, x24 //Size preserved across cache routines
++#else
+   mov x0, x12 //Stack Base
+   mov x1, x2  //Stack Size
++#endif
+   mov x2, x26 //DeviceTree pointer
+   mov x3, x22 //UEFI memory base
+ 
+diff --git a/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.c b/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.c
+index 1791e46..f62af62 100644
+--- a/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.c
++++ b/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.c
+@@ -27,6 +27,9 @@
+ #include <Library/PrintLib.h>
+ #include <Library/AppleDTLib.h>
+ #include <Library/VirtualDisplayValidation.h>
++#ifdef J413_BOOT_CONTRACT
++#include <Library/J413BootMemory.h>
++#endif
+ 
+ //Device memory map configuration file for UEFI (this is to help with pagetable initialization)
+ #include <Library/T810XFamilyVirtualMemoryMapDefines.h>
+@@ -60,7 +63,7 @@ STATIC VOID InitMmu(IN ARM_MEMORY_REGION_DESCRIPTOR *MemoryTable)
+ }
+ 
+ //borrowed from edk2-platforms:Armada7k8kMemoryInitPeiLib
+-STATIC VOID ReserveMemoryRegion ( IN EFI_PHYSICAL_ADDRESS ReservedRegionBase, IN UINT32 ReservedRegionSize)
++STATIC BOOLEAN ReserveMemoryRegion ( IN EFI_PHYSICAL_ADDRESS ReservedRegionBase, IN UINT32 ReservedRegionSize)
+ {
+   EFI_RESOURCE_ATTRIBUTE_TYPE  ResourceAttributes;
+   EFI_PHYSICAL_ADDRESS         ReservedRegionTop;
+@@ -68,6 +71,9 @@ STATIC VOID ReserveMemoryRegion ( IN EFI_PHYSICAL_ADDRESS ReservedRegionBase, IN
+   EFI_PEI_HOB_POINTERS         NextHob;
+   UINT64                       ResourceLength;
+ 
++  if ((ReservedRegionSize == 0) || (ReservedRegionSize > MAX_UINT64 - ReservedRegionBase)) {
++    return FALSE;
++  }
+   ReservedRegionTop = ReservedRegionBase + ReservedRegionSize;
+ 
+   //
+@@ -131,10 +137,11 @@ STATIC VOID ReserveMemoryRegion ( IN EFI_PHYSICAL_ADDRESS ReservedRegionBase, IN
+         ReservedRegionBase,
+         ReservedRegionSize);
+ 
+-      break;
++      return TRUE;
+     }
+     NextHob.Raw = GET_NEXT_HOB (NextHob);
+   }
++  return FALSE;
+ }
+ 
+ 
+@@ -276,6 +283,36 @@ EFI_STATUS EFIAPI MemoryPeim(IN EFI_PHYSICAL_ADDRESS UefiMemoryBase, IN UINT64 U
+     ASSERT (Found);
+   }
+ 
++#ifdef J413_BOOT_CONTRACT
++  // Match the loader's fixed pointers and dynamic auxiliary arena. Do this
++  // before DXE receives allocatable system-memory HOBs.
++  struct j413_boot_reservations BootRegions;
++  const struct boot_args *BootArgs =
++    (const struct boot_args *)(UINTN)FixedPcdGet64 (PcdBootArgsPointer);
++  UINT64 BootLimit = MIN (PcdGet64 (PcdFrameBufferAddress),
++                         PcdGet64 (PcdPreloadedRamdiskBase));
++  if (!j413_boot_reservations_plan (
++         PcdGet64 (PcdSystemMemoryBase), PcdGet64 (PcdSystemMemorySize),
++         FixedPcdGet64 (PcdAdtPointer), PcdGet64 (PcdFdBaseAddress),
++         PcdGet32 (PcdFdSize), FixedPcdGet64 (PcdBootArgsPointer), 0x4000,
++         BootArgs->top_of_kernel_data, BootLimit, &BootRegions)) {
++    DEBUG ((DEBUG_ERROR, "J413 STOP: invalid boot-data HOB bounds\n"));
++    return EFI_INVALID_PARAMETER;
++  }
++  if (!ReserveMemoryRegion (BootRegions.before_fd_base, BootRegions.before_fd_size) ||
++      !ReserveMemoryRegion (BootRegions.after_fd_base, BootRegions.after_fd_size)) {
++    DEBUG ((DEBUG_ERROR, "J413 STOP: boot-data resource HOB reservation failed\n"));
++    return EFI_NOT_FOUND;
++  }
++  BuildMemoryAllocationHob (BootRegions.before_fd_base, BootRegions.before_fd_size,
++                            EfiReservedMemoryType);
++  BuildMemoryAllocationHob (BootRegions.after_fd_base, BootRegions.after_fd_size,
++                            EfiReservedMemoryType);
++  DEBUG ((DEBUG_INFO, "J413 BOOTDATA HOB: reserved 0x%llx+0x%x and 0x%llx+0x%x\n",
++          BootRegions.before_fd_base, BootRegions.before_fd_size,
++          BootRegions.after_fd_base, BootRegions.after_fd_size));
++#endif
++
+   //
+   // The framebuffer is ordinary DRAM shared by GOP, Windows BasicDisplay, and the host
+   // stream reader. Remove it from the system-memory resource and describe it as reserved
+diff --git a/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.inf b/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.inf
+index c84299b..ebff282 100644
+--- a/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.inf
++++ b/Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.inf
+@@ -43,6 +43,8 @@
+   gEmbeddedTokenSpaceGuid.PcdPrePiProduceMemoryTypeInformationHob
+ 
+ [FixedPcd]
++  gAppleSiliconPkgTokenSpaceGuid.PcdBootArgsPointer
++  gAppleSiliconPkgTokenSpaceGuid.PcdAdtPointer
+   gAppleSiliconPkgTokenSpaceGuid.PcdPreloadedRamdiskBase
+   gAppleSiliconPkgTokenSpaceGuid.PcdPreloadedRamdiskMaxSize
+   gAppleSiliconPkgTokenSpaceGuid.PcdLowMemoryWindowBase

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 from tools.collect_j413 import collect
-from tools.j413_platform import ROOT, check_overlay, stage_overlay, stage_m1n1
+from tools.j413_platform import ROOT, check_overlay, stage_overlay, stage_m1n1, overlay_sha256, require_current_firmware
 from tools.artifact_manifest import create_manifest, verify_manifest, ManifestError
 
 
@@ -48,6 +48,16 @@ class J413PlatformTests(unittest.TestCase):
             mu = root / "mu"
             subprocess.run(["git", "init", "-q", str(mu)], check=True)
             subprocess.run(["git", "-C", str(mu), "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "fixture"], check=True)
+            for relative in (
+                'Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.c',
+                'Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.inf',
+                'Silicon/Apple/AppleSiliconPkg/PrePi/AArch64/ModuleEntryPoint.S',
+            ):
+                destination=mu/relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(subprocess.check_output(['git','-C',str(ROOT/'mu'),'show','HEAD:'+relative]))
+            subprocess.run(['git','-C',str(mu),'add','.'],check=True)
+            subprocess.run(['git','-C',str(mu),'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','pinned sources'],check=True)
             revision = subprocess.check_output(["git", "-C", str(mu), "rev-parse", "HEAD"], text=True).strip()
             files = sorted(p for p in (root / "platforms/j413/mu").rglob("*") if p.is_file())
             last = mu / files[-1].relative_to(root / "platforms/j413/mu")
@@ -59,12 +69,38 @@ class J413PlatformTests(unittest.TestCase):
                 first = mu / files[0].relative_to(root / "platforms/j413/mu")
                 self.assertFalse(first.exists())
                 last.unlink()
+                upstream=mu/'Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.c'
+                original=upstream.read_bytes()
+                upstream.write_bytes(b'developer-source-edits')
+                with self.assertRaisesRegex(ValueError, 'Mu patch conflicts'):
+                    stage_overlay(root)
+                self.assertFalse(first.exists())
+                upstream.write_bytes(original)
                 stage_overlay(root)
                 stage_overlay(root)
                 self.assertEqual(first.read_bytes(), files[0].read_bytes())
                 subprocess.run(["git", "-C", str(mu), "add", "--", first.relative_to(mu).as_posix()], check=True)
                 with self.assertRaisesRegex(ValueError, "overwrite upstream source"):
                     stage_overlay(root)
+
+    def test_firmware_reuse_rejects_changed_patch_source(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            overlay=root/'platforms/j413/mu'
+            overlay.mkdir(parents=True)
+            (overlay/'test.c').write_text('initial source')
+            manifest={'platform_overlay_sha256':overlay_sha256(root)}
+            require_current_firmware(manifest,root)
+            patches=root/'platforms/j413/mu-patches'
+            patches.mkdir()
+            (patches/'fix.patch').write_text('corrected source')
+            with self.assertRaisesRegex(ValueError,'rebuild Mu'):
+                require_current_firmware(manifest,root)
+            manifest['platform_overlay_sha256']=overlay_sha256(root)
+            require_current_firmware(manifest,root)
+            (patches/'fix.patch').write_text('another correction')
+            with self.assertRaisesRegex(ValueError,'rebuild Mu'):
+                require_current_firmware(manifest,root)
 
     def test_manifest_does_not_label_m2_firmware_as_m1(self):
         with tempfile.TemporaryDirectory() as d:

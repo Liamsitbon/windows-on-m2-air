@@ -30,21 +30,32 @@ int main(void) {
     assert(!hv_autonomous_target_matches(0x8112,"J413",4));
     assert(!hv_autonomous_target_matches(0x8112,NULL,5));
     const struct hv_j413_boot_slots slots = {
-        0x851000000ULL, 0x8510b4000ULL, 0x8533e8000ULL, 0x860000000ULL,
+        0x851000000ULL, 0x8510b4000ULL, 0x8533e8000ULL, 0x85e000000ULL,
         0x1e00000ULL, 0xb4000ULL
     };
     struct hv_assisted_layout p, unchanged;
     memset(&p,0xa5,sizeof(p)); unchanged=p;
     /* Different ADT sizes preserve Mu pointers, not the J313 packed offsets. */
     assert(hv_j413_boot_data_plan(&slots,0x5941c,0x1000,30965760,0x200000,0x1000,&p));
-    assert(p.adt_base == 0x851000000ULL && p.trust_cache_base == 0x85105c000ULL);
+    assert(p.adt_base == 0x851000000ULL && p.trust_cache_base == 0x8533ec000ULL);
     assert(p.firmware_base == 0x8510b4000ULL && p.boot_args_base == 0x8533e8000ULL);
-    assert(p.sepfw_base == 0x852eb4000ULL);
-    assert(p.top_of_kernel_data == 0x8533ec000ULL);
+    assert(p.sepfw_base == 0x8533f0000ULL);
+    assert(p.top_of_kernel_data == 0x8535f4000ULL);
     assert(hv_j413_boot_data_plan(&slots,0x70000,0x4000,30965760,0x200000,0,&p));
-    assert(p.trust_cache_base == 0x851070000ULL);
+    assert(p.trust_cache_base == 0x8533ec000ULL);
     p=unchanged;
-    assert(!hv_j413_boot_data_plan(&slots,0xb4000,1,30965760,0,0,&p));
+    /* No artificial TC gap or 0x534000 SEP gap; real live sizes unknown.
+     * These independent test sizes reproduce both old narrow-gap failures. */
+    assert(hv_j413_boot_data_plan(&slots,0xb4000,0x100000,30965760,0x750000,0x1000,&p));
+    assert(p.trust_cache_base == 0x8533ec000ULL);
+    assert(p.sepfw_base == 0x8534ec000ULL);
+    assert(p.top_of_kernel_data == 0x853c40000ULL);
+    struct hv_j413_boot_slots tight=slots;
+    tight.data_limit=p.top_of_kernel_data;
+    assert(hv_j413_boot_data_plan(&tight,0xb4000,0x100000,30965760,0x750000,0x1000,&p));
+    p=unchanged;
+    tight.data_limit-=0x4000;
+    assert(!hv_j413_boot_data_plan(&tight,0xb4000,0x100000,30965760,0x750000,0x1000,&p));
     assert(!memcmp(&p,&unchanged,sizeof(p)));
     assert(!hv_j413_boot_data_plan(&slots,0xb4001,0,30965760,0,0,&p));
     assert(!hv_j413_boot_data_plan(&slots,1,0,0x1e00001,0,0,&p));

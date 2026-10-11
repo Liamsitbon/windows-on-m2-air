@@ -50,14 +50,14 @@ bool hv_j413_boot_data_plan(const struct hv_j413_boot_slots *s,
     p.adt_base = s->adt;
     p.firmware_base = s->firmware;
     p.boot_args_base = s->boot_args;
-    if (!next(s->adt, adt, &p.trust_cache_base) ||
-        !next(p.trust_cache_base, tc, &end) || end > s->firmware ||
+    if (!next(s->adt, adt, &end) || end > s->firmware ||
         /* Mu reserves PcdFdSize, even if its output file omits unused tail
-         * blocks. SEP/log must start after that full reservation. */
-        !next(s->firmware, s->firmware_max, &p.sepfw_base) ||
+         * blocks. Only ADT, FD and bootargs have fixed Mu pointers. */
+        !next(s->firmware, s->firmware_max, &end) || end > s->boot_args ||
+        !next(s->boot_args, HV_ASSISTED_BOOTARGS_SIZE, &p.trust_cache_base) ||
+        !next(p.trust_cache_base, tc, &p.sepfw_base) ||
         !next(p.sepfw_base, sep, &p.preoslog_base) ||
-        !next(p.preoslog_base, log, &end) || end > s->boot_args ||
-        !next(s->boot_args, HV_ASSISTED_BOOTARGS_SIZE, &p.top_of_kernel_data) ||
+        !next(p.preoslog_base, log, &p.top_of_kernel_data) ||
         p.top_of_kernel_data > s->data_limit)
         return false;
     *out = p;

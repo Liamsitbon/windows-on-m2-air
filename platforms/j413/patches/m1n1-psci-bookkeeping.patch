@@ -1,0 +1,24 @@
+diff --git a/src/hv_psci.c b/src/hv_psci.c
+index 88906f3..335ce1f 100644
+--- a/src/hv_psci.c
++++ b/src/hv_psci.c
+@@ -518,8 +518,8 @@ void hv_psci_init_requested_local_power_states(void) {
+ void hv_psci_update_power_level_limits(void) {
+    unsigned int cpu_index;
+    int j;
+-   unsigned int nodes_index[PSCI_MAX_POWER_LEVEL];
+-   unsigned int temp_index[PSCI_MAX_POWER_LEVEL];
++   unsigned int nodes_index[PSCI_MAX_POWER_LEVEL] = {0};
++   unsigned int temp_index[PSCI_MAX_POWER_LEVEL] = {0};
+ 
+    for(cpu_index = 0; cpu_index < psci_num_cores; cpu_index++) {
+       hv_psci_get_parent_nodes(cpu_index, PSCI_MAX_POWER_LEVEL, temp_index);
+@@ -893,7 +893,7 @@ void hv_psci_coordinate_power_states(unsigned int end_power_level, psci_power_st
+       //
+       // Coordinate requested states at the power level, and return the target state.
+       //
+-      num_cpu_siblings = psci_non_cpu_nodes->num_cpu_siblings;
++      num_cpu_siblings = psci_non_cpu_nodes[parent_index].num_cpu_siblings;
+       target_state = hv_psci_get_target_power_state(level, requested_states, num_cpu_siblings);
+       current_state_info->power_domain_state[level] = target_state;
+ 

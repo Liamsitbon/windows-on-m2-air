@@ -1,9 +1,11 @@
 # J413 autonomous UEFI experiment
 
 This is a compiled, source-checked boot experiment for MacBook Air M2 J413/T8112.
-It has not been launched on the Air. Its first success criterion is a visible Mu
-UEFI checkpoint; Windows Setup, Windows CPU/timer progress, USB storage/input,
-GPU and accelerated display remain unqualified. See EXP-20261011-J413-010 and EXP-20261011-J413-013.
+The preceding no-proxy candidate was photographed stopping before Mu in
+EXP014. The current boot-data/PrePi/PSCI corrections have not been launched.
+The next success criterion is a visible Mu UEFI checkpoint; Windows Setup, Windows CPU/timer progress, USB storage/input,
+GPU and accelerated display remain unqualified. See EXP-20261011-J413-014 through EXP-20261011-J413-016 and
+[J413 boot-path audit](J413_BOOT_AUDIT.md).
 
 ## Build and identity
 
@@ -15,16 +17,19 @@ Native ARM64 Docker provides GCC 13.3 and pinned Rust 1.85.1. The Rust pin avoid
 a bare-metal `wcslen` dependency emitted by Rust 1.99. Both distinct m1n1 stages
 are compiled with `M1N1_J413`; the nested image contains the clean J413 DEBUG Mu
 FD. Existing prepared Mu firmware can be reused with `J413_SKIP_MU=1`; its
-manifest and bytes are verified first. No disk, boot policy or installer is
+manifest, bytes and exact current Mu overlay/patch digest are verified first.
+Changed Mu source requires a fresh firmware build. A postbuild check also rejects
+a silently compiled-out J413 stack loop or missing linked boot-data reservations. No disk, boot policy or installer is
 changed by this script. Publication replaces the output directory only after
 verification, preserving the previous directory on a failed build.
 
-Output: `dist/j413/boot-experiment/boot.bin`, 2,513,640 bytes, SHA-256:
-`0f498e74e76912c906e48bdb556405433f3c193ab3f82d33fbb4a5446726ebdd`.
+Output: `dist/j413/boot-experiment/boot.bin`, 2,513,984 bytes, SHA-256:
+`a5f180de1b24c79fdedd39ee2944862b366dace275b1df5d0dbcaabb5219c800`.
 Its manifest includes exact artifacts, submodule pins/diffs, J413 source overlay
 and patch hash, DEBUG qualification, physical/debug-off profile, and TOOLCHAINS.json.
-Nested decompression/CRC checks pass and the decoded FD matches the previously
-built clean firmware byte for byte. These are software checks, not a boot test.
+Nested decompression/CRC checks pass and the decoded FD matches the freshly
+built patched J413 firmware byte for byte (SHA
+`cbeb2c6e39b59eb0fed4e18ee249dd682d2ee6d855a3fa4543b62cbf7565d15f`). These are software checks, not a boot test.
 
 ## Proxy is disabled in the current candidate
 
@@ -80,9 +85,16 @@ CPU rules retain their historical J313 names; compiled J413 identity is J413.
 The existing collector represents the boot CPU register image intended for
 secondaries, not an independent register read from every secondary.
 
-Before copying guest data, a pure planner checks that ADT/TrustCache fit before
-the fixed Mu FD, and SEPFW/log fit after its full PcdFdSize reservation and before
-fixed bootargs. The unused FD tail is filled using the FDF erase polarity.
+Before copying guest data, a pure planner keeps ADT/FD/bootargs at their fixed
+Mu pointers and packs TC, SEPFW and optional log after the 16 KB bootargs slot.
+The arena ends at the earlier framebuffer/ramdisk base, not at an artificial
+gap before the FD or bootargs. It rejects overflow or overlap before copying.
+The unused FD tail is filled using the FDF erase polarity. Mu removes both
+boot-data intervals adjacent to the FD from allocatable resource HOBs and adds
+reserved allocation HOBs through `top_of_kernel_data`. Failure to find a covering
+resource HOB is an error. The PrePi stack is fully cleared, page aligned, and
+its original base/size survive cache calls. Real source/property sizes and
+planned addresses are printed on each launch.
 The host allocator is capped below guest RAM. Live source buffers, loader,
 framebuffer and the five T8112 DCP reservations named by kboot.c must be disjoint
 from guest RAM. Oversized, missing or conflicting inputs stop with a message.
@@ -112,8 +124,9 @@ policy actually launches.
 
 The preferred integration path, if that existing stage 1 is active, is a backed-up
 replacement of the assigned internal ESP's `m1n1/boot.bin`. It preserves stage-1
-personalization. The internal ESP currently cannot be mounted in macOS, so no
-such update was performed and no writable/raw-disk workaround is assumed safe.
+personalization. An earlier macOS mount attempt failed; the operator has since supplied a photo
+of the no-proxy launch. The current mount state and exact installed hash were
+not independently inspected. This audit performed no ESP update.
 Verify a writable mount and the live old payload before choosing this path;
 retain a byte-identical recovery copy and record a separate install experiment.
 The raw nested candidate is not a PE/COFF `BOOTAA64.EFI` executable to copy onto

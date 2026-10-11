@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage the J413 firmware overlay without replacing upstream tracked files."""
+"""Stage J413 additive sources and checked patches against pinned Mu."""
 
 import argparse
 import hashlib
@@ -54,6 +54,20 @@ def stage_overlay(root=ROOT):
         if target.exists() and target.read_bytes() != source.read_bytes():
             raise ValueError(f"overlay destination has local edits: {relative}")
         copies.append((source, target))
+    pending = []
+    for patch in sorted((root / "platforms/j413/mu-patches").glob("*.patch")):
+        command = ["git", "-C", str(mu), "apply", "--check"]
+        if subprocess.run(command + ["--reverse", str(patch.resolve())],
+                          capture_output=True).returncode == 0:
+            continue
+        result = subprocess.run(command + [str(patch.resolve())],
+                                capture_output=True, text=True)
+        if result.returncode:
+            raise ValueError(f"Mu patch conflicts with local source: {patch.name}: {result.stderr}")
+        pending.append(patch)
+    # No copies or patches until the complete preflight succeeds.
+    for patch in pending:
+        subprocess.run(["git", "-C", str(mu), "apply", str(patch.resolve())], check=True)
     for source, target in copies:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
@@ -67,7 +81,17 @@ def overlay_sha256(root=ROOT):
         if path.is_file():
             digest.update(path.relative_to(directory).as_posix().encode() + b"\0")
             digest.update(path.read_bytes())
+    # Keep the original additive digest stable when no patches exist, while
+    # making every owning upstream-source correction part of provenance.
+    for path in sorted((root / "platforms/j413/mu-patches").glob("*.patch")):
+        digest.update(b"mu-patches/" + path.name.encode() + b"\0")
+        digest.update(path.read_bytes())
     return digest.hexdigest()
+
+
+def require_current_firmware(manifest, root=ROOT):
+    if manifest.get("platform_overlay_sha256") != overlay_sha256(root):
+        raise ValueError("J413 firmware source changed; rebuild Mu without J413_SKIP_MU")
 
 
 def m1n1_sources_sha256(root=ROOT):

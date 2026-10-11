@@ -11,7 +11,9 @@ struct hv_j413_boot_slots {
 };
 
 /* Pure planning: output is unchanged on failure. Fixed Mu pointers are never
- * moved to accommodate larger live Apple data. All intervals are half open. */
+ * moved to accommodate larger live Apple data. TC/SEP/log follow bootargs;
+ * data_limit must precede every framebuffer/ramdisk/other live reservation.
+ * All intervals are half open. Mu reserves through top_of_kernel_data. */
 bool hv_j413_boot_data_plan(const struct hv_j413_boot_slots *slots,
                            uint64_t adt, uint64_t tc, uint64_t firmware,
                            uint64_t sep, uint64_t log,

@@ -20,6 +20,12 @@ python3 tools/j413_platform.py --stage-m1n1
 if [ "${J413_SKIP_MU:-0}" != 1 ]; then scripts/build-j413-firmware.sh; fi
 python3 tools/artifact_manifest.py verify dist/j413/firmware-debug/MANIFEST.json \
     --platform j413 --require-role J413_EFI.fd=guest-firmware
+python3 - <<'PY'
+from pathlib import Path
+from tools.artifact_manifest import verify_manifest
+from tools.j413_platform import require_current_firmware
+require_current_firmware(verify_manifest(Path('dist/j413/firmware-debug/MANIFEST.json'), expected_platform='j413'))
+PY
 OUT="$ROOT/dist/j413/boot-experiment"
 mkdir -p "$OUT"
 STAGING=$(mktemp -d "$ROOT/dist/j413/.boot-experiment.XXXXXX")

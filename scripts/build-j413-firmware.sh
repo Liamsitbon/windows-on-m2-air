@@ -64,6 +64,8 @@ PLATFORM=Platform/MacBookAirM2Pkg/PlatformBuild.py
     "$VENV/bin/stuart_update" -c "$PLATFORM" TOOL_CHAIN_TAG=CLANGPDB
     "$VENV/bin/stuart_build" -c "$PLATFORM" TOOL_CHAIN_TAG=CLANGPDB TARGET=DEBUG 'BLD_*_AIC_BUILD=FALSE'
 )
+python3 "$ROOT/tools/check_j413_prepi.py" \
+    "$ROOT/mu/Build/MacBookAirM2-AARCH64/DEBUG_CLANGPDB/AARCH64/AppleSiliconPkg/PrePi/PrePi"
 OUTPUT="$ROOT/dist/j413/firmware-debug"
 mkdir -p "$OUTPUT"
 cp "$ROOT/mu/Build/MacBookAirM2-AARCH64/DEBUG_CLANGPDB/FV/J413MACBOOKAIRM2_EFI.fd" "$OUTPUT/J413_EFI.fd"

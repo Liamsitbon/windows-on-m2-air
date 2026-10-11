@@ -157,12 +157,8 @@ def create_manifest(
         overlay_dir = root / "platforms/j413/mu"
         if not overlay_dir.is_dir():
             raise ManifestError("J413 firmware source overlay is missing")
-        digest = hashlib.sha256()
-        for source in sorted(overlay_dir.rglob("*")):
-            if source.is_file():
-                digest.update(source.relative_to(overlay_dir).as_posix().encode() + b"\0")
-                digest.update(source.read_bytes())
-        data["platform_overlay_sha256"] = digest.hexdigest()
+        from tools.j413_platform import overlay_sha256
+        data["platform_overlay_sha256"] = overlay_sha256(root)
         if "boot.bin" in artifacts:
             from tools.j413_platform import m1n1_sources_sha256
             data["platform_m1n1_sources_sha256"] = m1n1_sources_sha256(root)

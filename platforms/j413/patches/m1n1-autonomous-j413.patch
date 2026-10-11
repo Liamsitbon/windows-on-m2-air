@@ -95,7 +95,7 @@ index 3a6a091..73eb685 100644
      io.profile = &profile;
      if (usb_plan.power_platform)
 diff --git a/src/hv_autonomous_runtime.c b/src/hv_autonomous_runtime.c
-index 83a29ba..36d80b2 100644
+index 83a29ba..036045b 100644
 --- a/src/hv_autonomous_runtime.c
 +++ b/src/hv_autonomous_runtime.c
 @@ -12,7 +12,16 @@
@@ -185,26 +185,48 @@ index 83a29ba..36d80b2 100644
      struct boot_args guest_args = cur_boot_args;
      u64 trust_cache[2] = {0};
      u64 sepfw[2] = {0};
-@@ -212,6 +263,63 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -212,6 +263,85 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
      void *guest_adt = (void *)layout->adt_base;
      int guest_memory_map;
  
 +#ifdef M1N1_J413
 +    const struct hv_j413_boot_slots slots = {
 +        .adt = layout->adt_base, .firmware = layout->firmware_base,
-+        .boot_args = layout->boot_args_base, .data_limit = layout->ramdisk_base,
++        .boot_args = layout->boot_args_base,
++        .data_limit = (layout->virtual_fb_base < layout->ramdisk_base ?
++                       layout->virtual_fb_base : layout->ramdisk_base),
 +        .firmware_max = layout->firmware_max_size, .adt_max = layout->adt_max_size,
 +    };
-+    if (source_memory_map < 0 ||
-+        !read_memory_map_region(adt, source_memory_map, "TrustCache", trust_cache, true) ||
-+        !read_memory_map_region(adt, source_memory_map, "SEPFW", sepfw, true) ||
-+        !read_memory_map_region(adt, source_memory_map, "preoslog", preoslog, false) ||
-+        !hv_j413_boot_data_plan(&slots, cur_boot_args.devtree_size, trust_cache[1],
-+                               runtime->firmware_size, sepfw[1], preoslog[1],
-+                               &runtime->guest_layout)) {
-+        printf("J413 STOP: live boot data does not fit fixed Mu slots\n");
++    if (source_memory_map < 0) {
++        printf("J413 STOP: missing /chosen/memory-map\n");
 +        return false;
 +    }
++    if (!read_memory_map_region(adt, source_memory_map, "TrustCache", trust_cache, true)) {
++        printf("J413 STOP: missing or malformed TrustCache region\n");
++        return false;
++    }
++    if (!read_memory_map_region(adt, source_memory_map, "SEPFW", sepfw, true)) {
++        printf("J413 STOP: missing or malformed SEPFW region\n");
++        return false;
++    }
++    if (!read_memory_map_region(adt, source_memory_map, "preoslog", preoslog, false)) {
++        printf("J413 STOP: malformed preoslog region\n");
++        return false;
++    }
++    printf("J413 BOOTDATA: ADT=%#llx TC=%#llx FD=%#llx/%#llx SEP=%#llx log=%#llx\n",
++           (u64)cur_boot_args.devtree_size, trust_cache[1], runtime->firmware_size,
++           slots.firmware_max, sepfw[1], preoslog[1]);
++    if (!hv_j413_boot_data_plan(&slots, cur_boot_args.devtree_size, trust_cache[1],
++                               runtime->firmware_size, sepfw[1], preoslog[1],
++                               &runtime->guest_layout)) {
++        printf("J413 STOP: boot data exceeds bounded arena BA=%#llx limit=%#llx\n",
++               slots.boot_args, slots.data_limit);
++        return false;
++    }
++    printf("J413 BOOTDATA: TC=%#llx SEP=%#llx log=%#llx top=%#llx limit=%#llx\n",
++           runtime->guest_layout.trust_cache_base, runtime->guest_layout.sepfw_base,
++           runtime->guest_layout.preoslog_base, runtime->guest_layout.top_of_kernel_data,
++           slots.data_limit);
 +    /* Never copy from a live source inside guest RAM, or publish a guest map
 +     * outside physical RAM. The host allocator is bounded below guest RAM. */
 +    const u64 source_regions[][2] = {
@@ -249,7 +271,7 @@ index 83a29ba..36d80b2 100644
      if (source_memory_map < 0 ||
          !read_memory_map_region(adt, source_memory_map, "TrustCache", trust_cache, true) ||
          !read_memory_map_region(adt, source_memory_map, "SEPFW", sepfw, true) ||
-@@ -226,11 +334,17 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -226,11 +356,17 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
          runtime->guest_layout.boot_args_base != layout->boot_args_base ||
          runtime->guest_layout.top_of_kernel_data > layout->ramdisk_base)
          return false;
@@ -267,7 +289,7 @@ index 83a29ba..36d80b2 100644
      memcpy((void *)runtime->guest_layout.sepfw_base, (void *)sepfw[0], sepfw[1]);
      if (preoslog[1])
          memcpy((void *)runtime->guest_layout.preoslog_base, (void *)preoslog[0], preoslog[1]);
-@@ -282,7 +396,11 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -282,7 +418,11 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
          guest_args.rv3.mem_size_actual = guest_args.mem_size;
      memcpy((void *)runtime->guest_layout.boot_args_base, &guest_args, sizeof(guest_args));
  
@@ -279,7 +301,7 @@ index 83a29ba..36d80b2 100644
      ic_ivau_range((void *)runtime->guest_layout.firmware_base, runtime->firmware_size);
      dc_cvau_range(guest_adt, cur_boot_args.devtree_size);
      dc_cvau_range((void *)runtime->guest_layout.trust_cache_base, trust_cache[1]);
-@@ -303,7 +421,7 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -303,7 +443,7 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
  
  static bool map_stage2(const struct hv_autonomous_runtime *runtime)
  {
@@ -288,7 +310,7 @@ index 83a29ba..36d80b2 100644
  
      if (!hv_init())
          return false;
-@@ -341,10 +459,24 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -341,10 +481,24 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
                            struct hv_autonomous_status *status, void *opaque)
  {
      struct hv_autonomous_runtime *runtime = opaque;
@@ -314,7 +336,7 @@ index 83a29ba..36d80b2 100644
              if (!hv_autonomous_profile_decode(payload->flags, &runtime->profile) ||
                  payload->layout_version != layout->layout_version ||
                  payload->uncompressed_size > layout->firmware_max_size ||
-@@ -373,10 +505,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -373,10 +527,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
               * its dynamic IRQ route when the device is actually declared.
               * A declared but malformed device remains fail-closed: hv_init()
               * will omit the route and POST_HV_INIT will reject the mismatch. */
