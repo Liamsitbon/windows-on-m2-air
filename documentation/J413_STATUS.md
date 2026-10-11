@@ -12,6 +12,8 @@ pointing gitlinks at unpublished submodule commits.
 | Framebuffer contract | 2560×1664, stride 10240, allocation `0x1040000` | No Windows scanout |
 | AIC2 USB1 routing | Physical IRQ 1112 → virtual INTID 857; incoming/EOI/capacity host tests | No Windows USB/DART qualification |
 | DockChannel FIFO | Original portable bounded core and fake-register tests | No live FIFO access or HID publication |
+| RTKit management | MIT source adaptation from official Asahi; version/endpoint/power plans and Windows ARM64 COFF compilation | No live coprocessor negotiation |
+| DockChannel HID framing | MIT source adaptation; packet/checksum/bounds tests under ASan/UBSan; Windows ARM64 COFF compilation | No keyboard/trackpad enumeration |
 | GPU / DCP | G14G and DCP bundle inventory and interface mapping | No M2 GPU command or accelerated frame |
 | Power, audio, WLAN, SEP | Bundle matching/dependency inventory | No Windows driver qualification |
 
@@ -19,7 +21,10 @@ pointing gitlinks at unpublished submodule commits.
 
 `investigation/j413-macos-resources.json` contains a whitelisted read-only ADT
 capture from Mac14,2/T8112. ADT `reg` values are preserved as raw parent-relative
-pairs: translating them to physical addresses requires traversing parent ranges.
+pairs; version 2 also resolves physical pairs through every ancestor's ranges.
+Missing, ambiguous or incomplete mappings remain explicitly unresolved, and
+inactive zero/zero placeholders have no physical address. This inventory grants
+no MMIO access or DMA ownership.
 The live USB1 IRQ is 1112, outside the guest GIC's 0..1019 namespace. The IRQ
 patch keeps these namespaces separate and reverses the mapping for EOI. USB0
 remains outside that static guest route. UART0 uses the observed AIC IRQ 739,
@@ -108,3 +113,6 @@ image. The next experiment must record its exact artifact and recovery path in
 qualify Windows/CPU/timer/storage before DMA, GPU or additional peripherals.
 
 External installer preparation: [observed SSD and boot boundaries](J413_EXTERNAL_SETUP.md).
+
+Official Asahi source adaptations and measured resources:
+[portable protocol components](ASAHI_PORTS.md).

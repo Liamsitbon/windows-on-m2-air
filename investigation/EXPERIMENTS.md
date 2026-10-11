@@ -7016,3 +7016,205 @@ shell noclobber enabled to refuse overwriting an existing file. Only the dd read
 runs under sudo; no output device argument is used. Expected file size is
 500170752 bytes. Do not mount or modify the source; validate size and SHA-256
 before offline inspection. This capture is not yet executed or successful.
+
+Capture follow-up to EXP-20261011-J413-004: the user executed the recorded dd
+reader and reported 119+1 input/output records, 500170752 bytes in 0.570235s.
+The local file independently measures exactly 500170752 bytes and SHA-256
+c3c05822c9bdf82ee3fd977621d5e54158662465527a4b64aa6da3b76398384b.
+The original partition was read, not repaired or mounted. The dd capture is
+confirmed; the cause of the earlier mount failure remains unresolved.
+
+## EXP-20261011-J413-005 — inspect preserved internal ESP offline
+
+Before run, 2026-10-11 UTC: root main is
+d67151175f2f39864a37ff80a02a30016ad8f5e3. Firmware submodule pins, J413 overlay
+and local patches are unchanged from EXP002; no firmware artifact is launched.
+Input is the preserved .local/esp-audit/internal-esp-20261011-0505.img with the
+size/hash recorded above. Read-only BPB inspection found FAT32, 4096-byte sectors,
+one sector per cluster, 32 reserved sectors, two 119-sector FATs, 122112 total
+sectors and root cluster 2. Signature is 55aa. No cause is inferred from this.
+Hypothesis: the copied FAT and directory chains can reveal the existing stage-2
+boot files without requiring an original-device mount. The only variable is
+using the preserved regular file rather than the physical partition. Inspect
+bounded FAT32 chains using the BPB/directory/table format confirmed against
+m1n1_windows/rust/vendor/rust-fatfs/src/{boot_sector,dir_entry,table}.rs.
+No source code from that dependency is copied. Open input only rb, preserve its
+hash, save extracted files only under a new ignored local directory. Expected
+checkpoint: inventory, boot-file hashes, and identifiable existing boot chain.
+Reject parsing if signatures/geometry/chains/paths are invalid. Never execute an
+extracted EFI or script. No Windows boot, boot-policy change or repair is planned.
+
+After EXP-20261011-J413-005, 2026-10-11 UTC: offline traversal extracted 145
+regular files (directory counts are separate), with bounded valid FAT32 chains.
+Both FAT copies match and the backup boot sector matches the primary. The image
+SHA-256 remained unchanged. The original ESP was not mounted or modified.
+The 2708868-byte m1n1/boot.bin has SHA-256
+6c6f7c9d7fd532b9475f07ed2828987fc25a9cbe25f6b7f9d7803a43f2d6983e.
+Its bounded XZ stream at offset 1458176 contains a second 2516344-byte m1n1 image,
+SHA-256 67f7e2f33e700a191e8012cc3ff9cd750a7d5a603431ac8e4652b173d987e371.
+Both carry J313 and automatic Windows entry strings. The inner XZ stream at the
+same offset contains a 30965760-byte FV image, SHA-256
+fb3f841a18d4e7c1484bc1b697fa559930b60f7696a0628ec7832c20bdf1992b,
+with a MacBookAirM2-AARCH64 debug PDB path. That path alone proves neither an
+M2 platform contract nor provenance. This is not the new clean-source FD hash.
+Internal efi/boot/bootaa64.efi is ARM64 and byte-identical to the external
+Setup fallback. BCD names sources/boot.wim and boot/boot.sdi; no sources/boot.wim
+exists on this ESP. No U-Boot was identified in the bounded decoded payloads.
+These static findings do not establish a working Windows boot or root cause.
+Local inventory and extracted binaries remain ignored; Apple recovery/account
+metadata and binaries are not published. Verdict: original file preservation
+and static inspection confirmed, hardware boot unattempted. Do not launch this
+unqualified existing image as a substitute for the clean J413 work.
+
+## EXP-20261011-J413-006 — preserve external SSD files before layout planning
+
+Before run, 2026-10-11 UTC: the user requests external Windows Setup and a separate
+future Windows installation partition, plus workspace on the SSD if needed.
+The identified SanDisk Extreme 2TB remains disk7 with disk7s2 exFAT Untitled 2.
+Read-only resizeVolume disk7s2 limits reports the filesystem cannot be resized.
+Local diskutil manual permits resizeVolume on journaled HFS+, not this exFAT;
+splitPartition is destructive. Do not substitute a destructive verb for resize.
+The live inventory has 1125 regular files, 8533377328 bytes, no scan errors.
+The Mac has approximately 18GiB available: enough for one file backup with at
+least 4GiB headroom. Copy every inventoried regular file, including hidden files,
+into a newly created private ignored local directory. Preserve account XML only
+locally with restricted file permissions; do not print or publish its contents.
+Single variable: create a normal-file backup, no physical partition operation.
+Expected checkpoint: source and destination hashes match for every regular file
+and a private manifest records exact paths/sizes/hashes. Reject if any read,
+identity, free-space, source-change or hash check fails. Disk7 identity must remain
+external SanDisk and exFAT before copying. Recovery remains unchanged original
+SSD. No format, erase, unmount, partition write or OS install is authorized by
+this diagnostic. Layout reconstruction is a separate reviewable operation.
+
+Additional EXP005 validation: the repository's parse_bootstrap and parse_image
+accept the preserved original image, including both CRCs and matching flags 1;
+inner layout version is 1. The two nested m1n1 images are the intended bootstrap
+format, not a packaging defect. This correction narrows the earlier static
+observation; its J313 launch assumptions remain unqualified for live M2.
+
+After EXP-20261011-J413-006, 2026-10-11 UTC: backup completed successfully with
+1125 verified files and 8533377328 bytes. Each destination hash equals its source
+hash and source size/mtime were stable during copying; no scan errors occurred.
+Local destination: .local/ssd-backup-yn0y2psr/files; manifest SHA-256
+0a1d6f0e0ea2eb2ad622ee185f6e5e1867c21bef19c44a0f53ee4a8424a83079.
+Files are mode 0600 and directories private on local APFS. This is not a raw
+external EFI/GPT backup. No SSD partition was modified. A concrete eventual
+16GB Setup, 512GB Windows, 16MB MSR, provisional 2GB WinRE and remainder-data
+layout is documented. The user's optional size preference remains pending; the
+512GB assumption affects planning only. Explicit authorization to reconstruct
+the exFAT partition, rather than resize it, is pending. Verdict: file preservation
+confirmed; physical layout unchanged.
+
+## EXP-20261011-J413-007 — portable Asahi protocol source adaptations
+
+Before full verification, 2026-10-11 UTC: official Asahi Linux branch asahi was
+resolved to 77cb8f24c2381a8abb7272d7bbdec548d6426a8a. Inspected rtkit.c, rtkit.h,
+dockchannel.c, dockchannel-hid.c, T8112/J413 DTS and local live resource inventory.
+RTKit offers GPL-2.0-only OR MIT; DockChannel HID offers GPL-2.0 OR MIT. MIT is
+selected for adaptations, original notices retained and upstream MIT text added.
+No Gemini source was read or imported. The existing ESP binary is diagnostic
+input only, not a source donor or launch candidate.
+
+Contract: RTKit management owns version negotiation, endpoint-map replies,
+system endpoint start words and power ACK state. A pure plan leaves transport
+commit and partial-send recovery to the Windows adapter. DockChannel packet
+code owns little-endian framing, additive checksum and bounded payload views.
+The hypervisor/platform still owns physical resources, IRQ and DART mappings;
+Windows integration owns transport, scheduling, buffer lifetime, cancellation,
+power, coprocessor reset and HID publication. Source-port packet validation
+rejects iface >=16 and invalid body/subheader bounds before exposing any view.
+No physical address/IRQ/power value was guessed or exercised.
+
+Windows sources inspected: WdfInterruptCreate, Using Framework Locks and Using
+Common Buffers on learn.microsoft.com. No WDF adapter API is implemented yet.
+Smallest falsifiable checkpoint: strict host harnesses, sanitizer validation of
+untrusted packet snapshots, and Windows ARM64 COFF object machine 0xaa64.
+Recovery: delete only generated temporary host/object artifacts. No hardware
+launch/build-install, runtime behavior or .sys linkage is claimed.
+Timing correction: the first isolated pure-C host and COFF checks passed before
+this entry was appended. The complete host suite is now planned before running:
+python3 -m unittest discover -s tests. Evidence: .local/asahi-port-tests.log.
+
+## EXP-20261011-J413-008 — stage reproducible artifacts in new SSD workspace
+
+Before run, 2026-10-11 UTC: the user authorizes work on the external SSD when
+needed for Mac space. Existing physical partition identity remains SanDisk
+Extreme 55AE, 2000365371904 bytes, 512-byte sectors, external disk7. Create only
+a new windows-on-m2-workspace directory with a unique artifact-set subdirectory
+on the existing exFAT filesystem. Copy the already prepared local FAT32 sparse
+image and clean J413 DEBUG firmware component, validating their recorded hashes
+before/after. A file inside exFAT is a staging artifact, not a boot partition.
+Do not copy recovery/account metadata or original unattended account XML into
+this workspace. Do not remove local sources: they are still needed if the user
+approves reconstruction of the current data partition. Expected checkpoint:
+identical copied artifacts, a local-to-SSD path record and unqualified-boot
+status. Reject identity mismatch, existing-file overwrite or hash discrepancy.
+No physical partition command, bootloader installation or hardware launch.
+
+After EXP-20261011-J413-007: complete suite ran 317 tests in 6.060s, 316 passed
+and one expected skip. Protocol host tests and Windows ARM64 COFF compilation
+passed; DockChannel packet harness ran under ASan/UBSan including an independent
+byte fixture, invalid lengths/checksums/interfaces, maximum payload and 10000
+bounded untrusted snapshots. No actual device, firmware launch or .sys linkage.
+Verdict: source-port software checkpoints confirmed, runtime unqualified.
+
+After EXP-20261011-J413-008: both artifacts copied to the new existing-filesystem
+workspace windows-on-m2-workspace/artifact-set-dlqdgi30 and their destination
+hashes matched the recorded source hashes. WINSETUP-M2.sparseimage is still
+8528105472 bytes with SHA-256 5b23eb02d5e40b8439ebcc553add9b1d1404431605f6241a47b870b4da3c17d6;
+J413_EFI.fd is 30965760 bytes with SHA-256 12409354b231ab22dd3d2c80982d8eb2da8ebcc1a16fdf75e13cbe1983f6098c.
+Local originals retained. No partition was created, resized or erased. No EFI
+fallback replacement or OS deployment. Verdict: SSD artifact staging confirmed,
+not a bootable physical Windows disk.
+
+## EXP-20261011-J413-009 — resolve live Apple ADT register ranges read only
+
+Before run, 2026-10-11 UTC: root main d67151175f2f39864a37ff80a02a30016ad8f5e3,
+plus uncommitted portable protocol and documentation changes. m1n1/Mu pins and
+local overlays remain unchanged. Inspected pinned rust/src/adt.rs
+get_reg_container and official Asahi T8112 DTS at 77cb8f24. Apple cell groups are
+little-endian, with widths from each parent; ranges map complete register
+extents through every ancestor. No physical address may be inferred if the
+range is absent, overlapping or does not cover the entire region. Add strict
+translation to the read-only whitelisted collector while retaining raw pairs;
+null represents an inactive zero/zero placeholder, not MMIO.
+Timing correction: an initial private IOReg snapshot was read while investigating
+resource ancestry before this entry. It did not access MMIO or change hardware.
+The new live command is python3 tools/collect_j413.py --output
+investigation/j413-macos-resources.json. Expected checkpoint: selected physical
+MMIO addresses agree with T8112 DTS, unresolved nodes remain explicit. Separate
+selected-SSD diskutil DeviceTreePath places it at usb-drd0; the current J413 ACPI
+only exposes usb-drd1 at 0x502280000 with physical IRQ 1112 routed to guest 857.
+USB0 physical IRQ 1031 is outside the guest GIC namespace too. Do not change
+routes, port ownership, USB role or GPIO/power state as part of collection.
+Five translation tests cover nested mixed-width buses, full extent coverage,
+identity ranges, disabled placeholders, missing/ambiguous maps and overflow.
+No hardware launch or resource qualification follows from a readable inventory.
+
+After EXP-20261011-J413-009: the first strict translation correctly refused
+physical addresses because IORegistry's synthetic Root was above the actual
+ADT device-tree root and had no address cells. No guessed physical values were
+emitted. Added an explicit device-tree root boundary plus a regression for that
+wrapper and ambiguous roots; arbitrary missing buses are still rejected.
+A new live capture then resolved all selected register pairs, including null
+inactive ANS placeholders. Five selected component bases agree with official
+T8112 DTS (UART0, AIC, USB0, USB1, and DockChannel IRQ bank); DockChannel's first
+ADT bank 0x24eb00000 is not itself the DTS IRQ bank. HID config/data derive as
+0x24eb30000/0x24eb34000. Aggregate ADT/DTS extents differ and are not declared
+interchangeable. The source-port document records these limits.
+Six translation regressions plus four existing J413 tests passed. No MMIO,
+IRQ route, DART, USB role, power, guest layout or firmware overlay was changed.
+Verdict: strict offline/live inventory translation confirmed; runtime resource
+ownership and the USB0 SSD versus guest USB1 mismatch remain unqualified.
+
+Final source verification for EXP007/EXP009: complete root suite ran 323 tests
+in 5.960s, 322 passed and one expected skip. The packet sanitizer harness and
+Windows ARM64 object checks passed. .local/asahi-port-tests-final.log SHA-256
+476d38b91417647453c85fd776834264eefb9b42d7a08cc60dd04d6c095f4d0d. No further firmware build or hardware launch was performed.
+EXTERNAL_SETUP/ASAHI_PORTS document the backed-up unchanged physical partitions,
+new directory-only artifact staging, source licenses, root wrapper correction,
+USB0/USB1 mismatch and remaining autonomous/DMA/driver contracts. Deletion and
+reconstruction of disk7s2 remains pending user approval; no .sys or GPU support
+is claimed. All Apple binaries, installer binaries, backup account XML and raw
+IORegistry captures remain untracked local/private artifacts.
