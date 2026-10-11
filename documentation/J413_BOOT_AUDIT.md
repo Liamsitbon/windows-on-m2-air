@@ -55,8 +55,8 @@ J413 PCD/FDF and ACPI. This is a targeted source audit, not proof of all hardwar
 
 ## Candidate and operator checkpoint
 
-Current candidate: `dist/j413/boot-experiment/boot.bin`, 2514260 bytes, SHA
-`96478bacc22198e9b039549e6ed65cadfef004b418577d168f472c8734500efa`.
+Current candidate: `dist/j413/boot-experiment/boot.bin`, 2520312 bytes, SHA
+`a451be44591ec389e3654e85e45b809b10bde781a7a81fa8d3124def2f21f3d9`.
 The independent EXP014 placement/HOB, EXP015 stack, and EXP016 bookkeeping fixes
 were combined in the preceding image. EXP017 changes only the source-range guard on that baseline; a hardware outcome alone cannot isolate one variable.
 Previous no-proxy candidate and original ESP/staging-kernel recovery copies are
@@ -78,3 +78,5 @@ scoped ESP backup. No raw partition restore is proposed.
 ## Upstream qualification
 
 See [primary-source comparison](J413_UPSTREAM_COMPARISON.md). The original verified Windows desktop is J313 M1 via assisted launch; neither that record nor this software replay qualifies autonomous J413 Windows boot.
+
+EXP018 photographs Windows Boot Manager Recovery (0xc000000f) with the preceding candidate; exact installed hash was not supplied. The current candidate additionally changes J413 boot presentation only. See [boot UI and recovery limits](J413_BOOT_UI_AND_RECOVERY.md). It has not been physically launched.

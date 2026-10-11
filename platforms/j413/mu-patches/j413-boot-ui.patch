@@ -1,0 +1,70 @@
+diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
+index 3e117b1..b422373 100644
+--- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
++++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
+@@ -5,6 +5,7 @@
+ **/
+ 
+ #include <Uefi.h>
++#include <Library/UefiLib.h>
+ 
+ #include <Guid/EventGroup.h>
+ #include <Library/DebugLib.h>
+@@ -100,6 +101,12 @@ StartWindowsFromHandle (
+   EFI_HANDLE                 LoaderImage;
+   EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
+ 
++
++#ifdef J413_BOOT_CONTRACT
++  if (gST->ConOut != NULL) {
++    Print(L"UEFI BOOT: loading \"\\EFI\\BOOT\\BOOTAA64.EFI\"\r\n");
++  }
++#endif
+   LoaderPath = FileDevicePath (FileSystemHandle, WINDOWS_FALLBACK_LOADER);
+   if (LoaderPath == NULL) {
+     return EFI_OUT_OF_RESOURCES;
+@@ -135,6 +142,13 @@ StartWindowsFromHandle (
+   LoadedImage->LoadOptionsSize = 0;
+ 
+   DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: starting %s\n", WINDOWS_FALLBACK_LOADER));
++
++#ifdef J413_BOOT_CONTRACT
++  if (gST->ConOut != NULL) {
++    Print(L"UEFI BOOT: handing control to Windows Boot Manager\r\n");
++    Print(L"Kernel has not been observed; 0xc000000f requires checking BCD/media.\r\n");
++  }
++#endif
+   Status = gBS->StartImage (LoaderImage, NULL, NULL);
+   DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: StartImage returned %r\n", Status));
+   gBS->UnloadImage (LoaderImage);
+diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
+index 3860c33..5615953 100644
+--- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
++++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
+@@ -17,6 +17,7 @@
+   UefiBootServicesTableLib
+   DevicePathLib
+   MemoryAllocationLib
++  UefiLib
+   DebugLib
+ 
+ [Protocols]
+diff --git a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
+index b2b1dd9..c62fc16 100644
+--- a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
++++ b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
+@@ -803,6 +803,14 @@ DeviceBootManagerAfterConsole (
+   }
+ 
+   ConsoleMsgLibDisplaySystemInfoOnConsole ();
++#ifdef J413_BOOT_CONTRACT
++  if (gST->ConOut != NULL) {
++    Print(L"\r\nUEFI BOOT: firmware console ready; discovering boot storage\r\n");
++    Print(L"Experimental firmware: review Secure Boot policy.\r\n");
++    Print(L"J413 built-in keyboard/trackpad driver is not available.\r\n");
++  }
++#endif
++
+ 
+   BootMode = GetBootModeHob ();
+ 

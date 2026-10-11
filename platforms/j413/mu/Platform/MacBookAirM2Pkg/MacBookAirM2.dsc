@@ -113,3 +113,8 @@
 
 [PcdsFixedAtBuild.common]
   gAppleSiliconPkgTokenSpaceGuid.PcdFrameBufferHeight|1664
+
+# J413 owns its presentation; device-state collection and Secure Boot policy stay intact.
+[LibraryClasses.common]
+  BootGraphicsProviderLib|MacBookAirM2Pkg/Library/J413BootGraphicsProviderLib/J413BootGraphicsProviderLib.inf
+  DisplayDeviceStateLib|MsGraphicsPkg/Library/DisplayDeviceStateLibNull/DisplayDeviceStateLibNull.inf

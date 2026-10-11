@@ -1,0 +1,114 @@
+diff --git a/src/fb.c b/src/fb.c
+index 2b85d9a..9f7ccbe 100644
+--- a/src/fb.c
++++ b/src/fb.c
+@@ -241,13 +241,28 @@ void fb_blit_logo(const struct image *logo)
+     fb_blit_image((fb.width - logo->width) / 2, (fb.height - logo->height) / 2, logo);
+ }
+ 
++#ifdef M1N1_J413
++static void j413_boot_text(u32 x, u32 y, const char *text, u32 scale);
++#endif
++
+ void fb_display_logo(void)
+ {
+     if (!console.initialized)
+         return;
+ 
+     printf("fb: display logo\n");
++#ifdef M1N1_J413
++    /* Text branding uses the existing bitmap font, independent of Apple assets. */
++    fb_clear(int2rgb(0));
++    const u32 scale = 3;
++    const u32 width = 9 * console.font.width * scale;
++    if (fb.width >= width && fb.height >= console.font.height * scale)
++        j413_boot_text((fb.width - width) / 2,
++                      (fb.height - console.font.height * scale) / 2, "UEFI BOOT", scale);
++    fb_update();
++#else
+     fb_blit_logo(logo);
++#endif
+ }
+ 
+ void fb_restore_logo(void)
+@@ -285,6 +300,65 @@ static inline rgb_t font_get_pixel(u8 c, u32 x, u32 y)
+     return col;
+ }
+ 
++#ifdef M1N1_J413
++static void j413_boot_text(u32 x, u32 y, const char *text, u32 scale)
++{
++    for (; *text; text++, x += console.font.width * scale) {
++        if (*text < 0x20 || *text >= 0x7f)
++            continue;
++        for (u32 row = 0; row < console.font.height; row++)
++            for (u32 col = 0; col < console.font.width; col++) {
++                rgb_t color = font_get_pixel(*text, col, row);
++                for (u32 dy = 0; dy < scale; dy++)
++                    for (u32 dx = 0; dx < scale; dx++)
++                        if (x + col * scale + dx < fb.width && y + row * scale + dy < fb.height)
++                            fb_set_pixel(x + col * scale + dx, y + row * scale + dy, color);
++            }
++    }
++}
++
++void fb_boot_progress(u32 stage, u32 count, const char *name)
++{
++    if (!console.initialized || !count || stage >= count || fb.width < 128 || fb.height < 160)
++        return;
++    u32 x = fb.width / 8, w = fb.width * 3 / 4, y = fb.height - 96;
++    fb_fill(x, y - 40, w, 64, int2rgb(0));
++    j413_boot_text(x, y - 40, name, 1);
++    fb_fill(x, y, w, 8, int2rgb(0x303030));
++    /* Completed stage count only; no simulated timing or fake kernel progress. */
++    fb_fill(x, y, w * stage / count, 8, int2rgb(0x0078d4));
++    fb_update();
++}
++
++void fb_guest_boot_logo(u64 base, u32 width, u32 height, u32 stride)
++{
++    /* Validated guest XRGB32 surface, drawn before DCP switches to it. */
++    if (!base || width < 128 || height < 160 || (u64)stride < (u64)width * 4 || stride % 4)
++        return;
++    u32 side = min(width, height) / 10, gap = max(side / 16, 2);
++    u32 left = (width - side * 2 - gap) / 2, top = (height - side * 2 - gap) / 2;
++    u32 *pixels = (u32 *)base;
++    for (u32 row = 0; row < side * 2 + gap; row++)
++        for (u32 col = 0; col < side * 2 + gap; col++)
++            if ((row < side || row >= side + gap) && (col < side || col >= side + gap))
++                pixels[(top + row) * (stride / 4) + left + col] = 0x0078d4;
++    const char *message = "Starting UEFI firmware";
++    u32 text_x = width / 8, text_y = height - 112;
++    if (console.font.width && console.font.height <= 40) {
++        for (; *message && text_x + console.font.width <= width; message++, text_x += console.font.width)
++            for (u32 row = 0; row < console.font.height; row++)
++                for (u32 col = 0; col < console.font.width; col++) {
++                    u32 v = font_get_pixel(*message, col, row).r;
++                    pixels[(text_y + row) * (stride / 4) + text_x + col] = v * 0x010101;
++                }
++    }
++    /* This is a firmware handoff mark, not a Windows progress claim. */
++    for (u32 row = height - 64; row < height - 56; row++)
++        for (u32 col = width / 8; col < width * 7 / 8; col++)
++            pixels[row * (stride / 4) + col] = 0x303030;
++}
++#endif
++
+ static void fb_putbyte(u8 c)
+ {
+     u32 x = (console.margin.cols + console.cursor.col) * console.font.width;
+diff --git a/src/fb.h b/src/fb.h
+index 08f52f4..da19ebb 100644
+--- a/src/fb.h
++++ b/src/fb.h
+@@ -47,6 +47,10 @@ void fb_fill(u32 x, u32 y, u32 w, u32 h, rgb_t color);
+ void fb_clear(rgb_t color);
+ void fb_clear_direct(void);
+ 
++#ifdef M1N1_J413
++void fb_boot_progress(u32 stage, u32 count, const char *name);
++void fb_guest_boot_logo(u64 base, u32 width, u32 height, u32 stride);
++#endif
+ void fb_display_logo(void);
+ void fb_restore_logo(void);
+ void fb_improve_logo(void);

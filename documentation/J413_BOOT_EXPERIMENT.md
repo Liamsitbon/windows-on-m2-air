@@ -22,13 +22,13 @@ a silently compiled-out J413 stack loop or missing linked boot-data reservations
 changed by this script. Publication replaces the output directory only after
 verification, preserving the previous directory on a failed build.
 
-Output: `dist/j413/boot-experiment/boot.bin`, 2,514,260 bytes, SHA-256:
-`96478bacc22198e9b039549e6ed65cadfef004b418577d168f472c8734500efa`.
+Output: `dist/j413/boot-experiment/boot.bin`, 2,520,312 bytes, SHA-256:
+`a451be44591ec389e3654e85e45b809b10bde781a7a81fa8d3124def2f21f3d9`.
 Its manifest includes exact artifacts, submodule pins/diffs, J413 source overlay
 and patch hash, DEBUG qualification, physical/debug-off profile, and TOOLCHAINS.json.
 Nested decompression/CRC checks pass and the decoded FD matches the freshly
 built patched J413 firmware byte for byte (SHA
-`cbeb2c6e39b59eb0fed4e18ee249dd682d2ee6d855a3fa4543b62cbf7565d15f`). These are software checks, not a boot test.
+`d55c03ec48008fd6e7f79b447176f44f53620153b768392c10f9ae3f93fe58cd`). These are software checks, not a boot test.
 
 ## Proxy is disabled in the current candidate
 
@@ -161,3 +161,5 @@ The external exFAT Setup copy and prepared FAT32 sparse image are unchanged.
 A physical FAT32 installer partition is still required by the planned media
 route; destructive exFAT reconstruction and Windows deployment have not been
 performed. See [external setup evidence](J413_EXTERNAL_SETUP.md).
+
+EXP018 photographs Windows Boot Manager Recovery (0xc000000f) with the preceding candidate; exact installed hash was not supplied. The current candidate additionally changes J413 boot presentation only. See [boot UI and recovery limits](J413_BOOT_UI_AND_RECOVERY.md). It has not been physically launched.

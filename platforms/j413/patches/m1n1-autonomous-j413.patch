@@ -95,10 +95,10 @@ index 3a6a091..73eb685 100644
      io.profile = &profile;
      if (usb_plan.power_platform)
 diff --git a/src/hv_autonomous_runtime.c b/src/hv_autonomous_runtime.c
-index 83a29ba..91915a7 100644
+index 83a29ba..3b7379c 100644
 --- a/src/hv_autonomous_runtime.c
 +++ b/src/hv_autonomous_runtime.c
-@@ -12,7 +12,17 @@
+@@ -12,7 +12,18 @@
  #include "hv_launch_golden_j313.h"
  #include "hv_launch_j313.h"
  #include "hv_launch_preflight.h"
@@ -107,6 +107,7 @@ index 83a29ba..91915a7 100644
 +#include "hv_j413_expected.h"
 +#include "hv_j413_boot_data.h"
 +#include "mcc.h"
++#include "fb.h"
 +#define ACTIVE_AUTONOMOUS_LAYOUT J413_AUTONOMOUS_LAYOUT
 +#else
  #include "hv_autonomous_layout.generated.h"
@@ -116,7 +117,7 @@ index 83a29ba..91915a7 100644
  #include "hv_autonomous_memory.h"
  #include "hv_autonomous_profile.h"
  #include "hv_vgic.h"
-@@ -42,7 +52,7 @@ struct hv_autonomous_runtime {
+@@ -42,7 +53,7 @@ struct hv_autonomous_runtime {
  static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
                                           const struct hv_autonomous_payload *payload)
  {
@@ -125,7 +126,7 @@ index 83a29ba..91915a7 100644
      const struct hv_contract_snapshot *reference = &runtime->golden[0];
      struct hv_launch_j313_host_state *state = &runtime->base_state;
  
-@@ -64,6 +74,9 @@ static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
+@@ -64,6 +75,9 @@ static bool publish_runtime_launch_state(struct hv_autonomous_runtime *runtime,
      state->regions[HV_CONTRACT_REGION_FIRMWARE].base = layout->firmware_base;
      state->regions[HV_CONTRACT_REGION_FIRMWARE].size = ALIGN_UP(payload->uncompressed_size,
                                                                  HV_ASSISTED_ALIGNMENT);
@@ -135,7 +136,7 @@ index 83a29ba..91915a7 100644
      state->regions[HV_CONTRACT_REGION_ADT].base = layout->adt_base;
      state->regions[HV_CONTRACT_REGION_ADT].size = ALIGN_UP(cur_boot_args.devtree_size,
                                                             HV_ASSISTED_ALIGNMENT);
-@@ -200,10 +213,77 @@ static bool map_arm_io_ranges(void)
+@@ -200,10 +214,77 @@ static bool map_arm_io_ranges(void)
      return true;
  }
  
@@ -214,7 +215,7 @@ index 83a29ba..91915a7 100644
      struct boot_args guest_args = cur_boot_args;
      u64 trust_cache[2] = {0};
      u64 sepfw[2] = {0};
-@@ -212,6 +292,84 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -212,6 +293,84 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
      void *guest_adt = (void *)layout->adt_base;
      int guest_memory_map;
  
@@ -299,7 +300,7 @@ index 83a29ba..91915a7 100644
      if (source_memory_map < 0 ||
          !read_memory_map_region(adt, source_memory_map, "TrustCache", trust_cache, true) ||
          !read_memory_map_region(adt, source_memory_map, "SEPFW", sepfw, true) ||
-@@ -226,11 +384,17 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -226,11 +385,17 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
          runtime->guest_layout.boot_args_base != layout->boot_args_base ||
          runtime->guest_layout.top_of_kernel_data > layout->ramdisk_base)
          return false;
@@ -317,7 +318,7 @@ index 83a29ba..91915a7 100644
      memcpy((void *)runtime->guest_layout.sepfw_base, (void *)sepfw[0], sepfw[1]);
      if (preoslog[1])
          memcpy((void *)runtime->guest_layout.preoslog_base, (void *)preoslog[0], preoslog[1]);
-@@ -282,7 +446,11 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -282,7 +447,11 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
          guest_args.rv3.mem_size_actual = guest_args.mem_size;
      memcpy((void *)runtime->guest_layout.boot_args_base, &guest_args, sizeof(guest_args));
  
@@ -329,7 +330,7 @@ index 83a29ba..91915a7 100644
      ic_ivau_range((void *)runtime->guest_layout.firmware_base, runtime->firmware_size);
      dc_cvau_range(guest_adt, cur_boot_args.devtree_size);
      dc_cvau_range((void *)runtime->guest_layout.trust_cache_base, trust_cache[1]);
-@@ -303,7 +471,7 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
+@@ -303,7 +472,7 @@ static bool prepare_boot_data(struct hv_autonomous_runtime *runtime,
  
  static bool map_stage2(const struct hv_autonomous_runtime *runtime)
  {
@@ -338,11 +339,25 @@ index 83a29ba..91915a7 100644
  
      if (!hv_init())
          return false;
-@@ -341,10 +509,24 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -341,10 +510,38 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
                            struct hv_autonomous_status *status, void *opaque)
  {
      struct hv_autonomous_runtime *runtime = opaque;
 -    const struct hv_autonomous_layout *layout = &J313_AUTONOMOUS_LAYOUT;
++#ifdef M1N1_J413
++    static const char *const names[] = {
++        "Validating boot contract", "Preparing platform", "Decompressing UEFI firmware",
++        "Preparing boot data", "Installing stage-2 memory map", "Preparing interrupts",
++        "Preparing NVMe", "Preparing USB controller", "Preparing firmware console",
++        "Switching display to UEFI", "Entering UEFI firmware"
++    };
++    if ((u32)stage < ARRAY_SIZE(names)) {
++        printf("UEFI BOOT [%u/%u]: %s\n", (u32)stage + 1, (u32)HV_AUTONOMOUS_STAGE_COUNT, names[stage]);
++        fb_boot_progress(stage, HV_AUTONOMOUS_STAGE_COUNT, names[stage]);
++        iodev_console_kick();
++    }
++#endif
++
 +    const struct hv_autonomous_layout *layout = &ACTIVE_AUTONOMOUS_LAYOUT;
  
      switch (stage) {
@@ -364,7 +379,7 @@ index 83a29ba..91915a7 100644
              if (!hv_autonomous_profile_decode(payload->flags, &runtime->profile) ||
                  payload->layout_version != layout->layout_version ||
                  payload->uncompressed_size > layout->firmware_max_size ||
-@@ -373,10 +555,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+@@ -373,10 +570,15 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
               * its dynamic IRQ route when the device is actually declared.
               * A declared but malformed device remains fail-closed: hv_init()
               * will omit the route and POST_HV_INIT will reject the mismatch. */
@@ -380,6 +395,19 @@ index 83a29ba..91915a7 100644
                  printf("PREFLIGHT FAIL checkpoint=PRE_HV_INIT reason=golden\n");
                  iodev_console_kick();
                  return false;
+@@ -453,6 +655,12 @@ static bool runtime_stage(enum hv_autonomous_stage stage,
+         case HV_AUTONOMOUS_STAGE_READY:
+             memset((void *)layout->virtual_fb_base, 0,
+                    (u64)layout->virtual_fb_stride * layout->virtual_fb_height);
++#ifdef M1N1_J413
++            fb_guest_boot_logo(layout->virtual_fb_base, layout->virtual_fb_width,
++                               layout->virtual_fb_height, layout->virtual_fb_stride);
++            dc_cvau_range((void *)layout->virtual_fb_base,
++                          (u64)layout->virtual_fb_stride * layout->virtual_fb_height);
++#endif
+             if (runtime->profile.physical_display &&
+                 display_prepare_guest_surface(
+                     layout->virtual_fb_base,
 diff --git a/src/hv_launch_j313.c b/src/hv_launch_j313.c
 index 5fb179d..9f725b0 100644
 --- a/src/hv_launch_j313.c

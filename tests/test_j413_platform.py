@@ -52,6 +52,9 @@ class J413PlatformTests(unittest.TestCase):
                 'Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.c',
                 'Silicon/Apple/T810XFamilyPkg/Library/MemoryInitPeiLib/MemoryInitPeiLib.inf',
                 'Silicon/Apple/AppleSiliconPkg/PrePi/AArch64/ModuleEntryPoint.S',
+                'Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c',
+                'Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c',
+                'Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf',
             ):
                 destination=mu/relative
                 destination.parent.mkdir(parents=True, exist_ok=True)

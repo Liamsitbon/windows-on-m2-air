@@ -1,0 +1,22 @@
+[Defines]
+  INF_VERSION = 0x00010005
+  BASE_NAME = J413BootGraphicsProviderLib
+  FILE_GUID = a883414f-6e2b-4e89-b1af-53d6b7248c92
+  MODULE_TYPE = DXE_DRIVER
+  VERSION_STRING = 1.0
+  LIBRARY_CLASS = BootGraphicsProviderLib|DXE_DRIVER UEFI_APPLICATION
+[Sources]
+  J413BootGraphicsProviderLib.c
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  OemPkg/OemPkg.dec
+  MsGraphicsPkg/MsGraphicsPkg.dec
+[LibraryClasses]
+  BaseMemoryLib
+  MemoryAllocationLib
+  DxeServicesLib
+  PcdLib
+[Pcd]
+  gOemPkgTokenSpaceGuid.PcdThermalFile
+  gOemPkgTokenSpaceGuid.PcdLowBatteryFile
