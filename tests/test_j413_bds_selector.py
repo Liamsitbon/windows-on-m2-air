@@ -41,6 +41,9 @@ static void J413Checkpoint(const char *s,int v){(void)s;(void)v;}
 static EFI_STATUS locate_protocol(int *guid,void *key,void **out){(void)guid;(void)key;*out=NULL;return EFI_NOT_FOUND;}
 
 static BOOLEAN mSetupSelected;
+static EFI_HANDLE mEfiAlreadyAttemptedHandle;
+static int fallback_count,fallback_success;
+static EFI_STATUS J413NextEfiOption(EFI_BOOT_MANAGER_LOAD_OPTION *o){fallback_count++;if(fallback_success){o->ready=1;return EFI_SUCCESS;}return EFI_NOT_FOUND;}
 static struct {void *ConOut;} table={(void*)1};
 static int connection_banner;
 #define gST (&table)
@@ -61,16 +64,17 @@ static EFI_DEVICE_PATH_PROTOCOL *FileDevicePath(EFI_HANDLE h,const wchar_t *name
 static EFI_STATUS EfiBootManagerInitializeLoadOption(EFI_BOOT_MANAGER_LOAD_OPTION *o,int number,int type,int attr,const wchar_t *name,EFI_DEVICE_PATH_PROTOCOL *p,void *opts,int length){
  assert(number==0xffff&&type==0&&attr==1&&p->id==3&&!opts&&!length);assert(!wcscmp(name,L"Windows ARM64 Setup"));init_count++;if(init_fail)return 3;o->ready=1;return 0;}
 '''+src[a:b]+r'''
-static void reset(void){mSetupSelected=0;connection_banner=0;free_count=connects=locate_fail=init_fail=path_fail=init_count=probe_null=0;
+static void reset(void){mSetupSelected=0;mEfiAlreadyAttemptedHandle=NULL;fallback_count=fallback_success=0;connection_banner=0;free_count=connects=locate_fail=init_fail=path_fail=init_count=probe_null=0;
  for(int i=0;i<3;i++){media[i].MediaPresent=1;block[i].Media=&media[i];fs[i].complete=0;}media[0].MediaPresent=0;fs[2].complete=1;}
 int main(void){EFI_BOOT_MANAGER_LOAD_OPTION o={0};reset();assert(GetJ413SetupOption(NULL)==1&&connects==0);
  assert(GetJ413SetupOption(&o)==0&&o.ready&&init_count==1&&free_count==2&&connects==1);
  assert(GetJ413SetupOption(&o)==2&&connects==1);reset();locate_fail=1;assert(GetJ413SetupOption(&o)==2&&free_count==0);
- reset();probe_null=1;assert(GetJ413SetupOption(&o)==2&&free_count==1&&!mSetupSelected);
+ reset();probe_null=1;assert(GetJ413SetupOption(&o)==2&&free_count==1&&mSetupSelected);
  reset();block[2].Media=NULL;assert(GetJ413SetupOption(&o)==2&&free_count==1);
  reset();fs[2].complete=0;assert(GetJ413SetupOption(&o)==2&&init_count==0);
- reset();path_fail=1;assert(GetJ413SetupOption(&o)==3&&free_count==1&&!mSetupSelected);
- reset();init_fail=1;assert(GetJ413SetupOption(&o)==3&&free_count==2&&!mSetupSelected);init_fail=0;assert(GetJ413SetupOption(&o)==0);return 0;}
+ reset();path_fail=1;assert(GetJ413SetupOption(&o)==2&&free_count==1&&mSetupSelected);
+ reset();init_fail=1;assert(GetJ413SetupOption(&o)==2&&free_count==2&&mSetupSelected);
+ reset();fs[2].complete=0;fallback_success=1;assert(GetJ413SetupOption(&o)==0&&fallback_count==1&&connects==1);assert(GetJ413SetupOption(&o)==0&&connects==1&&fallback_count==2);return 0;}
 '''
   with tempfile.TemporaryDirectory() as d:
    p=Path(d);(p/'t.c').write_text(c);subprocess.run([cc,'-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',str(p/'t.c'),'-o',str(p/'t')],check=True);subprocess.run([str(p/'t')],check=True)

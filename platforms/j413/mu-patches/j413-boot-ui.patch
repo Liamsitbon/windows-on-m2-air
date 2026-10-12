@@ -14,13 +14,13 @@ index ad72599..e0d1fc3 100644
    DEBUG(
        (EFI_D_INFO,
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
-index 3e117b1..0ded2bd 100644
+index 3e117b1..218360c 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 @@ -1,10 +1,11 @@
  /** @file
 -  Deterministically launch the installed Windows fallback loader from internal storage.
-+  Select complete J413 Setup media for application-level BDS; retain legacy launch.
++  Select J413 Setup and arbitrary ARM64 EFI applications for application-level BDS.
  
    SPDX-License-Identifier: BSD-2-Clause-Patent
  **/
@@ -30,10 +30,11 @@ index 3e117b1..0ded2bd 100644
  
  #include <Guid/EventGroup.h>
  #include <Library/DebugLib.h>
-@@ -15,14 +16,25 @@
+@@ -15,14 +16,31 @@
  #include <Protocol/LoadedImage.h>
  #include <Protocol/SimpleFileSystem.h>
  
+-#define WINDOWS_FALLBACK_LOADER  L"\\EFI\\BOOT\\BOOTAA64.EFI"
 +#ifdef J413_BOOT_CONTRACT
 +#include <Protocol/J413WindowsSetup.h>
 +#include <Protocol/J413UsbDartReady.h>
@@ -41,9 +42,15 @@ index 3e117b1..0ded2bd 100644
 +#include <Library/UefiBootManagerLib.h>
 +#include "J413ConnectTrace.h"
 +#endif
-+
- #define WINDOWS_FALLBACK_LOADER  L"\\EFI\\BOOT\\BOOTAA64.EFI"
  
++#define WINDOWS_FALLBACK_LOADER  L"\\EFI\\BOOT\\BOOTAA64.EFI"
++#ifdef J413_BOOT_CONTRACT
++#include <Guid/FileInfo.h>
++#include <Library/BaseLib.h>
++#include <Library/BaseMemoryLib.h>
++#include "J413EfiCandidates.h"
++#endif
++
 +#ifndef J413_BOOT_CONTRACT
  STATIC EFI_HANDLE  mDriverImageHandle;
  STATIC EFI_EVENT   mReadyToBootEvent;
@@ -56,7 +63,7 @@ index 3e117b1..0ded2bd 100644
  STATIC
  VOID
  ConnectAllBlockIoHandles (
-@@ -89,6 +101,35 @@ HasWindowsFallbackLoader (
+@@ -89,6 +107,35 @@ HasWindowsFallbackLoader (
    return !EFI_ERROR (Status);
  }
  
@@ -92,7 +99,7 @@ index 3e117b1..0ded2bd 100644
  STATIC
  EFI_STATUS
  StartWindowsFromHandle (
-@@ -100,6 +141,12 @@ StartWindowsFromHandle (
+@@ -100,6 +147,12 @@ StartWindowsFromHandle (
    EFI_HANDLE                 LoaderImage;
    EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
  
@@ -105,7 +112,7 @@ index 3e117b1..0ded2bd 100644
    LoaderPath = FileDevicePath (FileSystemHandle, WINDOWS_FALLBACK_LOADER);
    if (LoaderPath == NULL) {
      return EFI_OUT_OF_RESOURCES;
-@@ -135,6 +182,13 @@ StartWindowsFromHandle (
+@@ -135,6 +188,13 @@ StartWindowsFromHandle (
    LoadedImage->LoadOptionsSize = 0;
  
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: starting %s\n", WINDOWS_FALLBACK_LOADER));
@@ -119,7 +126,7 @@ index 3e117b1..0ded2bd 100644
    Status = gBS->StartImage (LoaderImage, NULL, NULL);
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: StartImage returned %r\n", Status));
    gBS->UnloadImage (LoaderImage);
-@@ -161,8 +215,11 @@ TryStartWindowsFromHandle (
+@@ -161,8 +221,11 @@ TryStartWindowsFromHandle (
                    &gEfiBlockIoProtocolGuid,
                    (VOID **)&BlockIo
                    );
@@ -133,7 +140,7 @@ index 3e117b1..0ded2bd 100644
      return FALSE;
    }
  
-@@ -172,7 +229,11 @@ TryStartWindowsFromHandle (
+@@ -172,7 +235,11 @@ TryStartWindowsFromHandle (
                    &gEfiSimpleFileSystemProtocolGuid,
                    (VOID **)&FileSystem
                    );
@@ -146,7 +153,7 @@ index 3e117b1..0ded2bd 100644
      return FALSE;
    }
  
-@@ -257,9 +318,82 @@ WindowsAutoBootReadyToBoot (
+@@ -257,9 +324,87 @@ WindowsAutoBootReadyToBoot (
      }
    }
  
@@ -170,7 +177,7 @@ index 3e117b1..0ded2bd 100644
 +  UINTN Count = 0;
 +  EFI_STATUS Status;
 +  if (Option == NULL) return EFI_INVALID_PARAMETER;
-+  if (mSetupSelected) return EFI_NOT_FOUND;
++  if (mSetupSelected) return J413NextEfiOption(Option);
 +  // Called by BDS at TPL_APPLICATION, never from a notification callback.
 +  J413LogStatus("J413 EFI phase log; not complete UART/kernel log", EFI_SUCCESS);
 +  if (gST->ConOut != NULL) Print(L"UEFI TRACE: Setup selector entered; connecting controllers\r\n");
@@ -211,6 +218,7 @@ index 3e117b1..0ded2bd 100644
 +    FreePool(Path);
 +    if (!EFI_ERROR(Status)) {
 +      mSetupSelected = TRUE;
++      mEfiAlreadyAttemptedHandle = Handles[Index];
 +      if (gST->ConOut != NULL) Print(L"UEFI BOOT: complete Setup selected; BDS will launch Windows\r\n");
 +      break;
 +    }
@@ -218,8 +226,12 @@ index 3e117b1..0ded2bd 100644
 +  FreePool(Handles);
 +  J413Checkpoint("Setup option selection result", Status);
 +  if (EFI_ERROR(Status) && gST->ConOut != NULL) {
-+    Print(L"UEFI BOOT: Setup selection failed: %r\r\n", Status);
-+    Print(L"Check SSD on USB1 and complete readable Setup files.\r\n");
++    Print(L"UEFI BOOT: no complete Setup selected: %r; searching all EFI applications\r\n", Status);
++  }
++  if (EFI_ERROR(Status)) {
++    mSetupSelected = TRUE;
++    Status = J413NextEfiOption(Option);
++    J413Checkpoint("General EFI selection result", Status);
 +  }
 +  return Status;
 +}
@@ -229,7 +241,7 @@ index 3e117b1..0ded2bd 100644
  EFI_STATUS
  EFIAPI
  WindowsAutoBootDxeInitialize (
-@@ -267,9 +401,16 @@ WindowsAutoBootDxeInitialize (
+@@ -267,9 +412,16 @@ WindowsAutoBootDxeInitialize (
    IN EFI_SYSTEM_TABLE  *SystemTable
    )
  {
@@ -246,17 +258,17 @@ index 3e117b1..0ded2bd 100644
    mDriverImageHandle = ImageHandle;
    mWindowsStarted = FALSE;
  
-@@ -304,4 +445,5 @@ WindowsAutoBootDxeInitialize (
+@@ -304,4 +456,5 @@ WindowsAutoBootDxeInitialize (
                    );
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: ReadyToBoot hook %r\n", Status));
    return Status;
 +#endif
  }
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
-index 3860c33..921d6f2 100644
+index 3860c33..46dfb1d 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
-@@ -11,20 +11,30 @@
+@@ -11,20 +11,31 @@
  
  [Packages]
    MdePkg/MdePkg.dec
@@ -271,6 +283,7 @@ index 3860c33..921d6f2 100644
 +  UefiBootManagerLib
 +  PrintLib
 +  BaseMemoryLib
++  BaseLib
 +  UefiLib
    DebugLib
  
@@ -288,7 +301,7 @@ index 3860c33..921d6f2 100644
  
  [Depex]
 diff --git a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
-index b2b1dd9..569c04d 100644
+index b2b1dd9..1c5e30d 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
 @@ -9,6 +9,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -356,7 +369,7 @@ index b2b1dd9..569c04d 100644
    FrontPageBoot = MsBootPolicyLibIsSettingsBoot ();
    UFPBoot = FALSE;
    AltDeviceBoot = MsBootPolicyLibIsAltBoot ();
-@@ -950,6 +977,14 @@ DeviceBootManagerPriorityBoot (
+@@ -950,6 +977,25 @@ DeviceBootManagerPriorityBoot (
      SetRebootReason (OEM_REBOOT_TO_SETUP_KEY);
    } else {
      Status = EFI_NOT_FOUND;
@@ -366,6 +379,17 @@ index b2b1dd9..569c04d 100644
 +    Print(L"UEFI TRACE: Setup protocol lookup: %r\r\n", Probe);
 +    if (!EFI_ERROR(Probe) && Setup != NULL && Setup->GetOption != NULL) {
 +      Status = Setup->GetOption(BootOption);
++      // Normal BDS launch at TPL_APPLICATION; try each returned candidate once.
++      while (!EFI_ERROR(Status)) {
++        Print(L"UEFI EFI: attempting %s\r\n", BootOption->Description);
++        EfiBootManagerBoot(BootOption);
++        Print(L"UEFI EFI: application returned: %r\r\n", BootOption->Status);
++        EfiBootManagerFreeLoadOption(BootOption);
++        Status = Setup->GetOption(BootOption);
++      }
++      Print(L"UEFI EFI: candidate search finished: %r\r\n", Status);
++      // All ephemeral attempts consumed; let ordinary BootNext/BootOrder proceed.
++      Status = EFI_NOT_FOUND;
 +    }
 +#endif
    }
