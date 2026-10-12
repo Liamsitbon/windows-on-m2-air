@@ -198,7 +198,7 @@ index c95c52f..65a4081 100644
    TRUE
 \ No newline at end of file
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c
-index 5d6d810..8f47893 100644
+index 5d6d810..a8582ea 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c
 @@ -40,6 +40,9 @@
@@ -284,7 +284,7 @@ index 5d6d810..8f47893 100644
    NumDwc3Controllers = PcdGet32(PcdAppleNumDwc3Controllers);
  
    for(UINT32 Dwc3Index = 0; Dwc3Index < NumDwc3Controllers; Dwc3Index++) {
-@@ -246,22 +259,41 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
+@@ -246,22 +259,43 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
        continue;
      }
  
@@ -295,13 +295,15 @@ index 5d6d810..8f47893 100644
 +    Dwc3ControllerBaseAddr = 0;
 +    Dwc3ControllerRegSize = 0;
 +    if(dt_node_reg(Dwc3Node, 0, &Dwc3ControllerBaseAddr, &Dwc3ControllerRegSize) != 0 ||
-+       Dwc3ControllerBaseAddr == 0 || Dwc3ControllerRegSize < 0x100000 ||
-+       Dwc3ControllerBaseAddr > MAX_UINT64 - 0x100000) {
++       Dwc3ControllerBaseAddr == 0 || (Dwc3ControllerBaseAddr & (sizeof(UINT64) - 1)) != 0 ||
++       Dwc3ControllerRegSize < DWC3_REG_OFFSET + OFFSET_OF(DWC3_CONTROLLER, GFLAdj) + sizeof(UINT32) ||
++       Dwc3ControllerRegSize < APPLE_DWC3_CIO_LINK_TIMER + sizeof(UINT32) ||
++       Dwc3ControllerBaseAddr > MAX_UINT64 - Dwc3ControllerRegSize) {
 +      DEBUG((DEBUG_ERROR, "UEFI USB: invalid ADT resource %a, skipping\n", Dwc3RegNodeName));
 +      continue;
 +    }
-+    // Publish the qualified one-megabyte xHCI window, not the entire ADT extent.
-+    Dwc3ControllerRegSize = 0x100000;
++    // Preserve the translated ADT aperture. J413 reports 0x11800 bytes,
++    // covering the global and Apple CIO registers; never invent a larger BAR.
 +    DEBUG((DEBUG_INFO, "AppleUsbTypeCBringupDxeBringupCallback: DWC3_%d base address: 0x%llx, size = 0x%llx\n", Dwc3Index, Dwc3ControllerBaseAddr, Dwc3ControllerRegSize));
      
      //

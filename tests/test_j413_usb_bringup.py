@@ -1,6 +1,7 @@
 """Execute the patched owning Mu functions with mocked firmware/MMIO services."""
 from pathlib import Path
 import re
+import json
 import subprocess
 import tempfile
 import unittest
@@ -25,6 +26,7 @@ PRELUDE = r'''
 #define BIT(n) (1u<<(n))
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 #define MAX_UINT64 UINT64_MAX
+#define OFFSET_OF(t,m) offsetof(t,m)
 #define SIZE_4GB UINT64_C(0x100000000)
 #define SIZE_16KB 16384
 #define EFI_SUCCESS 0
@@ -51,12 +53,13 @@ static dt_node_t node;
 static int missing, reg_fail, short_reg, overflow_reg, read_count, write_count, busy, delayed, closed, installed;
 static UINT32 midr=0x61000000, streams=16;
 static char *compatible="dart,t8110"; static size_t compatible_size=11;
+static UINT64 resource_base=0x502f00000, resource_size=0x100000;
 static UINT64 last_write_address; static UINT32 last_write_value;
 static dt_node_t *dt_get(const char *n) { return missing || n[strlen(n)-1]=='0' ? NULL : &node; }
 static int dt_node_reg(dt_node_t *n,UINT32 index,UINT64 *base,UINT64 *size) {
  assert(n==&node); if(reg_fail)return 1;
- *base=overflow_reg ? UINT64_MAX-1 : UINT64_C(0x502f00000)+index*0x80000;
- if(size)*size=short_reg ? 8 : 0x100000; return 0;
+ *base=overflow_reg ? UINT64_MAX-1 : resource_base+index*0x80000;
+ if(size)*size=short_reg ? 8 : resource_size; return 0;
 }
 static void *dt_node_prop(dt_node_t *n,const char *prop,size_t *size) { assert(n==&node);(void)prop;*size=compatible_size;return compatible; }
 static UINT32 ArmReadMidr(void){return midr;}
@@ -86,7 +89,7 @@ class J413UsbBringupTests(unittest.TestCase):
     def execute(self, source):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory);(path/'test.c').write_text(source)
-            subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-misleading-indentation','-fsanitize=address,undefined',str(path/'test.c'),'-o',str(path/'test')],check=True)
+            subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-misleading-indentation','-fsanitize=address,undefined','-fno-sanitize-recover=all',str(path/'test.c'),'-o',str(path/'test')],check=True)
             subprocess.run([str(path/'test')],check=True,timeout=10)
 
     def test_dart_command_resource_validation_and_readiness(self):
@@ -122,30 +125,40 @@ int main(void){
 #define NonDiscoverableDeviceTypeXhci 1
 #define NonDiscoverableDeviceDmaTypeCoherent 1
 static int init_count, register_count, fail_init;
-#define DWC3_REG_OFFSET 0xc100
-#define DWC3_GCTL_PRTCAP_HOST 1
-#define GFLADJ_30MHZ_DEFAULT 0
-struct controller { UINT32 GUsb2PhyCfg[1]; }; typedef struct controller DWC3_CONTROLLER;
+
 static int setup_count;
-static EFI_STATUS Dwc3XhciCoreInit(DWC3_CONTROLLER *c){assert((UINTN)c==0x502f00000+DWC3_REG_OFFSET);init_count++;return fail_init?EFI_DEVICE_ERROR:0;}
-static void Dwc3AppleSetupCio(UINTN base){assert(base==0x502f00000);setup_count++;}
+static EFI_STATUS Dwc3XhciCoreInit(DWC3_CONTROLLER *c){assert((UINTN)c==resource_base+DWC3_REG_OFFSET);init_count++;return fail_init?EFI_DEVICE_ERROR:0;}
+static void Dwc3AppleSetupCio(UINTN base){assert(base==resource_base);setup_count++;}
 static void Dwc3SetMode(DWC3_CONTROLLER *c,UINT32 mode){(void)c;(void)mode;}
 static void Dwc3SetFladj(DWC3_CONTROLLER *c,UINT32 value){(void)c;(void)value;}
 static void Dwc3XhciSetBeatBurstLength(DWC3_CONTROLLER *c){(void)c;}
-static EFI_STATUS RegisterNonDiscoverableMmioDevice(int type,int dma,EFI_STATUS (*cb)(void*),void *handle,UINTN count,...){assert(type==1 && dma==1 && cb==NULL && handle==NULL && count==1);register_count++;return 0;}
+static EFI_STATUS RegisterNonDiscoverableMmioDevice(int type,int dma,EFI_STATUS (*cb)(void*),void *handle,UINTN count,...){assert(type==1 && dma==1 && cb==NULL && handle==NULL && count==1);va_list args;va_start(args,count);assert(va_arg(args,UINTN)==resource_base);assert(va_arg(args,UINTN)==resource_size);va_end(args);register_count++;return 0;}
 '''
         main=r'''
 int main(void){
+ resource_base=CAPTURED_USB_BASE;resource_size=CAPTURED_USB_SIZE;
  AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL); assert(init_count==1 && register_count==1 && closed==1 && setup_count==1);
  init_count=register_count=setup_count=read_count=write_count=0;fail_init=1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(init_count==1 && !register_count && !setup_count && !read_count && !write_count);
- fail_init=0;init_count=0;reg_fail=1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
+ fail_init=0;init_count=0;
+ resource_size=APPLE_DWC3_CIO_LINK_TIMER+sizeof(UINT32)-1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
+ resource_size=DWC3_REG_OFFSET+OFFSET_OF(DWC3_CONTROLLER,GFLAdj)+sizeof(UINT32)-1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
+ resource_size=CAPTURED_USB_SIZE;resource_base=(UINT64_MAX-resource_size+8)&~UINT64_C(7);AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
+ resource_base=CAPTURED_USB_BASE+1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
+ resource_base=(UINT64_MAX-resource_size)&~UINT64_C(7);AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(init_count==1 && register_count==1);
+ init_count=register_count=setup_count=read_count=write_count=0;resource_base=CAPTURED_USB_BASE;
+ reg_fail=1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
  reg_fail=0;short_reg=1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
  short_reg=0;overflow_reg=1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
  overflow_reg=0;no_ready=1;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
  no_ready=0;ready.ControllerMask=0;AppleUsbTypeCBringupDxeBringupCallback(NULL,NULL);assert(!init_count && !register_count);
 }
 '''
-        self.execute(PRELUDE+support+actual+main)
+        header=(MU/'Include/Drivers/AppleUsbTypeCBringupDxe.h').read_text()
+        header=re.sub(r'^#include.*$', '', header,flags=re.M)
+        captured=json.loads((ROOT/'investigation/j413-macos-resources.json').read_text())
+        base,size=captured['nodes']['usb-drd1']['physical_reg_pairs'][0]
+        fixture=f'\n#define CAPTURED_USB_BASE UINT64_C({base})\n#define CAPTURED_USB_SIZE UINT64_C({size})\n'
+        self.execute(PRELUDE+header+fixture+support+actual+main)
 
     def test_actual_core_accepts_both_known_ids_without_cross_family_erratum(self):
         source=(MU/'Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c').read_text()
