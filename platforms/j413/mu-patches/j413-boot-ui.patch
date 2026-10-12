@@ -14,7 +14,7 @@ index ad72599..e0d1fc3 100644
    DEBUG(
        (EFI_D_INFO,
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
-index 3e117b1..3c62e84 100644
+index 3e117b1..0ded2bd 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 @@ -1,10 +1,11 @@
@@ -146,7 +146,7 @@ index 3e117b1..3c62e84 100644
      return FALSE;
    }
  
-@@ -257,9 +318,78 @@ WindowsAutoBootReadyToBoot (
+@@ -257,9 +318,82 @@ WindowsAutoBootReadyToBoot (
      }
    }
  
@@ -180,7 +180,11 @@ index 3e117b1..3c62e84 100644
 +    J413_USB_DART_READY *Ready = NULL;
 +    EFI_STATUS Probe = gBS->LocateProtocol(&gJ413UsbDartReadyProtocolGuid, NULL, (VOID **)&Ready);
 +    J413LogStatus("USB DART readiness protocol", Probe);
-+    if (!EFI_ERROR(Probe) && Ready != NULL) J413LogCount("DART controller mask", Ready->ControllerMask);
++    if (gST->ConOut != NULL) Print(L"UEFI USB: DART readiness protocol: %r\r\n", Probe);
++    if (!EFI_ERROR(Probe) && Ready != NULL) {
++      J413LogCount("DART controller mask", Ready->ControllerMask);
++      if (gST->ConOut != NULL) Print(L"UEFI USB: ready controller mask: 0x%x\r\n", Ready->ControllerMask);
++    }
 +  }
 +  J413Checkpoint("USB boot connection result", Status);
 +  Status = gBS->LocateHandleBuffer(ByProtocol, &gEfiSimpleFileSystemProtocolGuid,
@@ -225,7 +229,7 @@ index 3e117b1..3c62e84 100644
  EFI_STATUS
  EFIAPI
  WindowsAutoBootDxeInitialize (
-@@ -267,9 +397,16 @@ WindowsAutoBootDxeInitialize (
+@@ -267,9 +401,16 @@ WindowsAutoBootDxeInitialize (
    IN EFI_SYSTEM_TABLE  *SystemTable
    )
  {
@@ -242,7 +246,7 @@ index 3e117b1..3c62e84 100644
    mDriverImageHandle = ImageHandle;
    mWindowsStarted = FALSE;
  
-@@ -304,4 +441,5 @@ WindowsAutoBootDxeInitialize (
+@@ -304,4 +445,5 @@ WindowsAutoBootDxeInitialize (
                    );
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: ReadyToBoot hook %r\n", Status));
    return Status;

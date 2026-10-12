@@ -72,3 +72,9 @@ complete Setup media discovery. These source changes do not fix an exFAT install
 layout, guarantee kernel entry or establish input/GPU support. Previous boot image
 and original ESP recovery remain preserved; no repeated boot experiment is required
 merely to qualify these software tests.
+
+## DWC3 family validation (EXP-20261012-J413-029)
+
+Core initialization now accepts both already declared DWC3 (0x5533 upper signature) and DWC31 (0x3331) identities. Unknown, zero and all-ones identities are rejected before reset/write. The pre-1.90a DWC3 workaround only uses revision bits on DWC3; DWC31 GSNPSID is an IP signature and must not trigger that workaround from its low bits. Actual core-function sanitizer tests cover both known identities, old/new DWC3 revisions and invalid signatures. This corrects source behavior, but no physical GSNPSID value has been captured from this boot and it is not proof that identity rejection caused IMG_5765. Linux primary reference: https://raw.githubusercontent.com/torvalds/linux/master/drivers/usb/dwc3/core.c (`dwc3_core_is_valid`, `dwc3_core_setup_global_control`).
+
+The Setup console now reports non-discoverable controller enumeration status/count, matching xHCI count and actual connection result, plus DART readiness protocol presence and mask. A missing Setup file on an examined filesystem is not proof the external SSD is that filesystem. IMG_5765 passed the previous connection hang point but did not show a USB root connection marker; host-side four-file header validation still passes.

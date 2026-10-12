@@ -198,7 +198,7 @@ index c95c52f..65a4081 100644
    TRUE
 \ No newline at end of file
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c
-index 5d6d810..05a456d 100644
+index 5d6d810..8f47893 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c
 @@ -40,6 +40,9 @@
@@ -211,7 +211,27 @@ index 5d6d810..05a456d 100644
  
  //
  // This driver is just a stub to bringup register the DWC3 controller(s) as a non-discoverable XHCI controller(s), which
-@@ -163,8 +166,8 @@ STATIC EFI_STATUS Dwc3XhciCoreInit(IN DWC3_CONTROLLER *Controller)
+@@ -126,7 +129,8 @@ STATIC EFI_STATUS Dwc3XhciCoreInit(IN DWC3_CONTROLLER *Controller)
+   UINTN Dwc3HwParams1Reg;
+   Dwc3Revision = MmioRead32((UINTN)&Controller->GSnpsId);
+ 
+-  if((Dwc3Revision & DWC3_GSNPSID_MASK) != DWC3_SYNOPSYS_ALT_ID) {
++  if((Dwc3Revision & DWC3_GSNPSID_MASK) != DWC3_SYNOPSYS_ID &&
++     (Dwc3Revision & DWC3_GSNPSID_MASK) != DWC3_SYNOPSYS_ALT_ID) {
+     DEBUG((DEBUG_ERROR, "Dwc3XhciCoreInit: Revision 0x%x Not a Synopsys DWC3 core, aborting\n", Dwc3Revision));
+     return EFI_NOT_FOUND;
+   }
+@@ -150,7 +154,8 @@ STATIC EFI_STATUS Dwc3XhciCoreInit(IN DWC3_CONTROLLER *Controller)
+   //
+   // Both U-Boot and the NXP UsbHcd driver check for DWC3 errata on revisions < 1.90a - do likewise.
+   //
+-  if((Dwc3Revision & DWC3_RELEASE_MASK) < DWC3_RELEASE_190a) {
++  if((Dwc3Revision & DWC3_GSNPSID_MASK) == DWC3_SYNOPSYS_ID &&
++     (Dwc3Revision & DWC3_RELEASE_MASK) < DWC3_RELEASE_190a) {
+     Dwc3RegVal |= DWC3_GCTL_U2RSTECN;
+   }
+   MmioWrite32((UINTN)&Controller->GCtl, Dwc3RegVal);
+@@ -163,8 +168,8 @@ STATIC EFI_STATUS Dwc3XhciCoreInit(IN DWC3_CONTROLLER *Controller)
  // This function actually brings up the DWC3 controller. The PHY is already set up by iBoot so we don't need
  // to deal with that here.
  //
@@ -222,7 +242,7 @@ index 5d6d810..05a456d 100644
  AppleUsbTypeCBringupDxeInitializeUsbController(IN UINTN Dwc3ControllerBaseReg)
  {
    EFI_STATUS Status;
-@@ -179,7 +182,7 @@ AppleUsbTypeCBringupDxeInitializeUsbController(IN UINTN Dwc3ControllerBaseReg)
+@@ -179,7 +184,7 @@ AppleUsbTypeCBringupDxeInitializeUsbController(IN UINTN Dwc3ControllerBaseReg)
    Status = Dwc3XhciCoreInit(Dwc3Controller);
    if(EFI_ERROR(Status)) {
      DEBUG((DEBUG_ERROR, "AppleUsbTypeCBringupDxeInitializeUsbController: USB controller init failed, status %r\n", Status));
@@ -231,7 +251,7 @@ index 5d6d810..05a456d 100644
    }
  
    Dwc3AppleSetupCio(Dwc3ControllerBaseReg);
-@@ -201,7 +204,7 @@ AppleUsbTypeCBringupDxeInitializeUsbController(IN UINTN Dwc3ControllerBaseReg)
+@@ -201,7 +206,7 @@ AppleUsbTypeCBringupDxeInitializeUsbController(IN UINTN Dwc3ControllerBaseReg)
    //
    Dwc3SetFladj(Dwc3Controller, GFLADJ_30MHZ_DEFAULT);
    Dwc3XhciSetBeatBurstLength(Dwc3Controller);
@@ -240,7 +260,7 @@ index 5d6d810..05a456d 100644
    
  }
  
-@@ -214,7 +217,7 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
+@@ -214,7 +219,7 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
    UINT32 NumDwc3Controllers;
    UINT64 Dwc3ControllerBaseAddr;
    CHAR8 Dwc3RegNodeName[31];
@@ -249,7 +269,7 @@ index 5d6d810..05a456d 100644
    //
    // Close the event so that we don't have duplicate events floating around.
    //
-@@ -222,6 +225,14 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
+@@ -222,6 +227,14 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
  
    DEBUG((DEBUG_INFO, "AppleUsbTypeCBringupDxeBringupCallback started\n"));
  
@@ -264,7 +284,7 @@ index 5d6d810..05a456d 100644
    NumDwc3Controllers = PcdGet32(PcdAppleNumDwc3Controllers);
  
    for(UINT32 Dwc3Index = 0; Dwc3Index < NumDwc3Controllers; Dwc3Index++) {
-@@ -246,22 +257,41 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
+@@ -246,22 +259,41 @@ AppleUsbTypeCBringupDxeBringupCallback(IN EFI_EVENT Event, IN VOID *Context)
        continue;
      }
  

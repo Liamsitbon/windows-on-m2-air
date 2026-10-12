@@ -10,9 +10,11 @@ STATIC EFI_STATUS J413ConnectBootUsb(VOID)
 {
   EFI_HANDLE *Handles = NULL;
   UINTN Count = 0;
+  UINTN Matched = 0;
   EFI_STATUS Result = EFI_NOT_FOUND;
   EFI_STATUS Status = gBS->LocateHandleBuffer(ByProtocol,
       &gEdkiiNonDiscoverableDeviceProtocolGuid, NULL, &Count, &Handles);
+  Print(L"UEFI USB: registered controller lookup: %r; handles %u\r\n", Status, Count);
   if (EFI_ERROR(Status)) {
     if (Handles != NULL) FreePool(Handles);
     return Status;
@@ -23,6 +25,7 @@ STATIC EFI_STATUS J413ConnectBootUsb(VOID)
                                 (VOID **)&Device);
     if (EFI_ERROR(Status) || Device == NULL || Device->Type == NULL ||
         !CompareGuid(Device->Type, &gEdkiiNonDiscoverableXhciDeviceGuid)) continue;
+    Matched++;
     // The J413 platform registers only USB1, after checked core/DART initialization.
     // Recursive binding includes its PCI-I/O bridge, host, USB bus and storage children.
     EFI_DEVICE_PATH_PROTOCOL *Path = DevicePathFromHandle(Handles[Index]);
@@ -34,6 +37,7 @@ STATIC EFI_STATUS J413ConnectBootUsb(VOID)
     if (!EFI_ERROR(Status) || Result != EFI_SUCCESS) Result = Status;
   }
   if (Handles != NULL) FreePool(Handles);
+  Print(L"UEFI USB: matching boot controllers: %u; connection result: %r\r\n", Matched, Result);
   return Result;
 }
 #endif

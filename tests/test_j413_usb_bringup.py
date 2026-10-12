@@ -146,3 +146,42 @@ int main(void){
 }
 '''
         self.execute(PRELUDE+support+actual+main)
+
+    def test_actual_core_accepts_both_known_ids_without_cross_family_erratum(self):
+        source=(MU/'Drivers/AppleUsbTypeCBringupDxe/AppleUsbTypeCBringupDxe.c').read_text()
+        header=(MU/'Include/Drivers/AppleUsbTypeCBringupDxe.h').read_text()
+        header='\n'.join(line for line in header.splitlines() if not line.startswith('#include'))
+        prelude=r'''
+#include <assert.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <string.h>
+#define STATIC static
+#define IN
+#define TRUE 1
+#define FALSE 0
+#define DEBUG(x) do{}while(0)
+#define BIT0 1u
+#define BIT3 8u
+#define BIT7 128u
+#define BIT11 2048u
+#define BIT16 65536u
+#define BIT31 0x80000000u
+#define EFI_SUCCESS 0
+#define EFI_NOT_FOUND 1
+typedef uint32_t UINT32;typedef uint64_t UINT64;typedef uintptr_t UINTN;typedef int EFI_STATUS;typedef void VOID;
+''' + header + r'''
+static int resets,writes;
+static void Dwc3ControllerSoftReset(DWC3_CONTROLLER *c){(void)c;resets++;}
+static UINT32 MmioRead32(UINTN address){return *(UINT32*)address;}
+static void MmioWrite32(UINTN address,UINT32 value){*(UINT32*)address=value;writes++;}
+'''
+        main=r'''
+int main(void){DWC3_CONTROLLER c;
+ const UINT32 identities[]={DWC3_SYNOPSYS_ID|0x180a,DWC3_SYNOPSYS_ID|0x290a,DWC3_SYNOPSYS_ALT_ID};
+ for(int i=0;i<3;i++){memset(&c,0,sizeof(c));c.GSnpsId=identities[i];resets=writes=0;assert(Dwc3XhciCoreInit(&c)==EFI_SUCCESS&&resets==1&&writes==1);assert(((c.GCtl&DWC3_GCTL_U2RSTECN)!=0)==(i==0));}
+ const UINT32 invalid[]={0,0xffffffffu,0x12340000};
+ for(int i=0;i<3;i++){memset(&c,0,sizeof(c));c.GSnpsId=invalid[i];resets=writes=0;assert(Dwc3XhciCoreInit(&c)==EFI_NOT_FOUND&&!resets&&!writes);}
+ return 0;}
+'''
+        self.execute(prelude+function(source,'Dwc3XhciCoreInit')+main)
