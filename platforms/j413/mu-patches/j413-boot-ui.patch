@@ -14,7 +14,7 @@ index ad72599..e0d1fc3 100644
    DEBUG(
        (EFI_D_INFO,
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
-index 3e117b1..901cbb3 100644
+index 3e117b1..de5beef 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 @@ -1,10 +1,11 @@
@@ -30,7 +30,7 @@ index 3e117b1..901cbb3 100644
  
  #include <Guid/EventGroup.h>
  #include <Library/DebugLib.h>
-@@ -15,14 +16,24 @@
+@@ -15,14 +16,25 @@
  #include <Protocol/LoadedImage.h>
  #include <Protocol/SimpleFileSystem.h>
  
@@ -39,6 +39,7 @@ index 3e117b1..901cbb3 100644
 +#include <Protocol/J413UsbDartReady.h>
 +#include "J413EfiLog.h"
 +#include <Library/UefiBootManagerLib.h>
++#include "J413ConnectTrace.h"
 +#endif
 +
  #define WINDOWS_FALLBACK_LOADER  L"\\EFI\\BOOT\\BOOTAA64.EFI"
@@ -55,7 +56,7 @@ index 3e117b1..901cbb3 100644
  STATIC
  VOID
  ConnectAllBlockIoHandles (
-@@ -89,6 +100,35 @@ HasWindowsFallbackLoader (
+@@ -89,6 +101,35 @@ HasWindowsFallbackLoader (
    return !EFI_ERROR (Status);
  }
  
@@ -91,7 +92,7 @@ index 3e117b1..901cbb3 100644
  STATIC
  EFI_STATUS
  StartWindowsFromHandle (
-@@ -100,6 +140,12 @@ StartWindowsFromHandle (
+@@ -100,6 +141,12 @@ StartWindowsFromHandle (
    EFI_HANDLE                 LoaderImage;
    EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
  
@@ -104,7 +105,7 @@ index 3e117b1..901cbb3 100644
    LoaderPath = FileDevicePath (FileSystemHandle, WINDOWS_FALLBACK_LOADER);
    if (LoaderPath == NULL) {
      return EFI_OUT_OF_RESOURCES;
-@@ -135,6 +181,13 @@ StartWindowsFromHandle (
+@@ -135,6 +182,13 @@ StartWindowsFromHandle (
    LoadedImage->LoadOptionsSize = 0;
  
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: starting %s\n", WINDOWS_FALLBACK_LOADER));
@@ -118,7 +119,7 @@ index 3e117b1..901cbb3 100644
    Status = gBS->StartImage (LoaderImage, NULL, NULL);
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: StartImage returned %r\n", Status));
    gBS->UnloadImage (LoaderImage);
-@@ -161,8 +214,11 @@ TryStartWindowsFromHandle (
+@@ -161,8 +215,11 @@ TryStartWindowsFromHandle (
                    &gEfiBlockIoProtocolGuid,
                    (VOID **)&BlockIo
                    );
@@ -132,7 +133,7 @@ index 3e117b1..901cbb3 100644
      return FALSE;
    }
  
-@@ -172,7 +228,11 @@ TryStartWindowsFromHandle (
+@@ -172,7 +229,11 @@ TryStartWindowsFromHandle (
                    &gEfiSimpleFileSystemProtocolGuid,
                    (VOID **)&FileSystem
                    );
@@ -145,7 +146,7 @@ index 3e117b1..901cbb3 100644
      return FALSE;
    }
  
-@@ -257,9 +317,78 @@ WindowsAutoBootReadyToBoot (
+@@ -257,9 +318,78 @@ WindowsAutoBootReadyToBoot (
      }
    }
  
@@ -173,7 +174,7 @@ index 3e117b1..901cbb3 100644
 +  // Called by BDS at TPL_APPLICATION, never from a notification callback.
 +  J413LogStatus("J413 EFI phase log; not complete UART/kernel log", EFI_SUCCESS);
 +  if (gST->ConOut != NULL) Print(L"UEFI TRACE: Setup selector entered; connecting controllers\r\n");
-+  EfiBootManagerConnectAll();
++  J413ConnectAll();
 +  if (gST->ConOut != NULL) Print(L"UEFI TRACE: controller connection returned\r\n");
 +  {
 +    J413_USB_DART_READY *Ready = NULL;
@@ -224,7 +225,7 @@ index 3e117b1..901cbb3 100644
  EFI_STATUS
  EFIAPI
  WindowsAutoBootDxeInitialize (
-@@ -267,9 +396,16 @@ WindowsAutoBootDxeInitialize (
+@@ -267,9 +397,16 @@ WindowsAutoBootDxeInitialize (
    IN EFI_SYSTEM_TABLE  *SystemTable
    )
  {
@@ -241,17 +242,17 @@ index 3e117b1..901cbb3 100644
    mDriverImageHandle = ImageHandle;
    mWindowsStarted = FALSE;
  
-@@ -304,4 +440,5 @@ WindowsAutoBootDxeInitialize (
+@@ -304,4 +441,5 @@ WindowsAutoBootDxeInitialize (
                    );
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: ReadyToBoot hook %r\n", Status));
    return Status;
 +#endif
  }
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
-index 3860c33..5517acb 100644
+index 3860c33..43e990f 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
-@@ -11,15 +11,23 @@
+@@ -11,15 +11,24 @@
  
  [Packages]
    MdePkg/MdePkg.dec
@@ -264,6 +265,7 @@ index 3860c33..5517acb 100644
    DevicePathLib
    MemoryAllocationLib
 +  UefiBootManagerLib
++  DxeServicesTableLib
 +  PrintLib
 +  BaseMemoryLib
 +  UefiLib
