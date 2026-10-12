@@ -41,13 +41,14 @@ static void J413Checkpoint(const char *s,int v){(void)s;(void)v;}
 static EFI_STATUS locate_protocol(int *guid,void *key,void **out){(void)guid;(void)key;*out=NULL;return EFI_NOT_FOUND;}
 
 static BOOLEAN mSetupSelected;
-static struct {void *ConOut;} table={0};
+static struct {void *ConOut;} table={(void*)1};
+static int connection_banner;
 #define gST (&table)
-static int Print(const wchar_t *s,...){(void)s;return 0;}
+static int Print(const wchar_t *s,...){if(!wcscmp(s,L"UEFI TRACE: Setup selector entered; connecting controllers\r\n"))connection_banner++;return 0;}
 static int free_count,connects,locate_fail,init_fail,path_fail,init_count,probe_null;
 static MEDIA media[3];static EFI_BLOCK_IO_PROTOCOL block[3];static EFI_SIMPLE_FILE_SYSTEM_PROTOCOL fs[3];
 static void FreePool(void *p){assert(p);free_count++;free(p);}
-static void EfiBootManagerConnectAll(void){connects++;}
+static void EfiBootManagerConnectAll(void){assert(connection_banner==connects+1);connects++;}
 static int HasCompleteSetupMedia(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *p){return p->complete;}
 static EFI_STATUS locate(int type,int *guid,void *key,UINTN *count,EFI_HANDLE **out){
  (void)type;(void)guid;(void)key;if(locate_fail)return EFI_NOT_FOUND;
@@ -60,7 +61,7 @@ static EFI_DEVICE_PATH_PROTOCOL *FileDevicePath(EFI_HANDLE h,const wchar_t *name
 static EFI_STATUS EfiBootManagerInitializeLoadOption(EFI_BOOT_MANAGER_LOAD_OPTION *o,int number,int type,int attr,const wchar_t *name,EFI_DEVICE_PATH_PROTOCOL *p,void *opts,int length){
  assert(number==0xffff&&type==0&&attr==1&&p->id==3&&!opts&&!length);assert(!wcscmp(name,L"Windows ARM64 Setup"));init_count++;if(init_fail)return 3;o->ready=1;return 0;}
 '''+src[a:b]+r'''
-static void reset(void){mSetupSelected=0;free_count=connects=locate_fail=init_fail=path_fail=init_count=probe_null=0;
+static void reset(void){mSetupSelected=0;connection_banner=0;free_count=connects=locate_fail=init_fail=path_fail=init_count=probe_null=0;
  for(int i=0;i<3;i++){media[i].MediaPresent=1;block[i].Media=&media[i];fs[i].complete=0;}media[0].MediaPresent=0;fs[2].complete=1;}
 int main(void){EFI_BOOT_MANAGER_LOAD_OPTION o={0};reset();assert(GetJ413SetupOption(NULL)==1&&connects==0);
  assert(GetJ413SetupOption(&o)==0&&o.ready&&init_count==1&&free_count==2&&connects==1);

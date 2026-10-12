@@ -14,7 +14,7 @@ index ad72599..e0d1fc3 100644
    DEBUG(
        (EFI_D_INFO,
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
-index 3e117b1..c54a2ad 100644
+index 3e117b1..901cbb3 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 @@ -1,10 +1,11 @@
@@ -145,7 +145,7 @@ index 3e117b1..c54a2ad 100644
      return FALSE;
    }
  
-@@ -257,9 +317,76 @@ WindowsAutoBootReadyToBoot (
+@@ -257,9 +317,78 @@ WindowsAutoBootReadyToBoot (
      }
    }
  
@@ -172,7 +172,9 @@ index 3e117b1..c54a2ad 100644
 +  if (mSetupSelected) return EFI_NOT_FOUND;
 +  // Called by BDS at TPL_APPLICATION, never from a notification callback.
 +  J413LogStatus("J413 EFI phase log; not complete UART/kernel log", EFI_SUCCESS);
++  if (gST->ConOut != NULL) Print(L"UEFI TRACE: Setup selector entered; connecting controllers\r\n");
 +  EfiBootManagerConnectAll();
++  if (gST->ConOut != NULL) Print(L"UEFI TRACE: controller connection returned\r\n");
 +  {
 +    J413_USB_DART_READY *Ready = NULL;
 +    EFI_STATUS Probe = gBS->LocateProtocol(&gJ413UsbDartReadyProtocolGuid, NULL, (VOID **)&Ready);
@@ -222,7 +224,7 @@ index 3e117b1..c54a2ad 100644
  EFI_STATUS
  EFIAPI
  WindowsAutoBootDxeInitialize (
-@@ -267,9 +394,16 @@ WindowsAutoBootDxeInitialize (
+@@ -267,9 +396,16 @@ WindowsAutoBootDxeInitialize (
    IN EFI_SYSTEM_TABLE  *SystemTable
    )
  {
@@ -239,7 +241,7 @@ index 3e117b1..c54a2ad 100644
    mDriverImageHandle = ImageHandle;
    mWindowsStarted = FALSE;
  
-@@ -304,4 +438,5 @@ WindowsAutoBootDxeInitialize (
+@@ -304,4 +440,5 @@ WindowsAutoBootDxeInitialize (
                    );
    DEBUG ((DEBUG_ERROR, "WindowsAutoBootDxe: ReadyToBoot hook %r\n", Status));
    return Status;
@@ -274,7 +276,7 @@ index 3860c33..5517acb 100644
    gEfiBlockIoProtocolGuid                       ## CONSUMES
    gEfiLoadedImageProtocolGuid                   ## CONSUMES
 diff --git a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
-index b2b1dd9..17dbd32 100644
+index b2b1dd9..569c04d 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
 @@ -9,6 +9,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -287,7 +289,7 @@ index b2b1dd9..17dbd32 100644
  
  #include <DfciSystemSettingTypes.h>
  
-@@ -797,12 +800,24 @@ DeviceBootManagerAfterConsole (
+@@ -797,23 +800,44 @@ DeviceBootManagerAfterConsole (
  
    PlatformPowerLevelCheck ();
  
@@ -312,13 +314,44 @@ index b2b1dd9..17dbd32 100644
  
    BootMode = GetBootModeHob ();
  
-@@ -950,6 +965,13 @@ DeviceBootManagerPriorityBoot (
+   if (BootMode != BOOT_ON_FLASH_UPDATE) {
+     Status = gBS->LocateProtocol (&gTpmPpProtocolGuid, NULL, (VOID **)&TpmPp);
+     if (!EFI_ERROR (Status) && (TpmPp != NULL)) {
++#ifdef J413_BOOT_CONTRACT
++      Print(L"UEFI TRACE: TPM confirmation entered\r\n");
++#endif
+       Status = TpmPp->PromptForConfirmation (TpmPp);
++#ifdef J413_BOOT_CONTRACT
++      Print(L"UEFI TRACE: TPM confirmation returned: %r\r\n", Status);
++#endif
+       DEBUG ((DEBUG_ERROR, "%a: Unexpected return from Tpm Physical Presence. Code=%r\n", __FUNCTION__, Status));
+     }
+   }
+ 
++#ifdef J413_BOOT_CONTRACT
++  Print(L"UEFI TRACE: AfterConsole returning platform connect list\r\n");
++#endif
+   return GetPlatformConnectList ();
+ }
+ 
+@@ -917,6 +941,9 @@ DeviceBootManagerPriorityBoot (
+   BOOLEAN     AltDeviceBoot;
+   EFI_STATUS  Status = EFI_SUCCESS;
+ 
++#ifdef J413_BOOT_CONTRACT
++  Print(L"UEFI TRACE: priority boot entered\r\n");
++#endif
+   FrontPageBoot = MsBootPolicyLibIsSettingsBoot ();
+   UFPBoot = FALSE;
+   AltDeviceBoot = MsBootPolicyLibIsAltBoot ();
+@@ -950,6 +977,14 @@ DeviceBootManagerPriorityBoot (
      SetRebootReason (OEM_REBOOT_TO_SETUP_KEY);
    } else {
      Status = EFI_NOT_FOUND;
 +#ifdef J413_BOOT_CONTRACT
 +    J413_WINDOWS_SETUP *Setup = NULL;
 +    EFI_STATUS Probe = gBS->LocateProtocol(&gJ413WindowsSetupProtocolGuid, NULL, (VOID **)&Setup);
++    Print(L"UEFI TRACE: Setup protocol lookup: %r\r\n", Probe);
 +    if (!EFI_ERROR(Probe) && Setup != NULL && Setup->GetOption != NULL) {
 +      Status = Setup->GetOption(BootOption);
 +    }
