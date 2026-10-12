@@ -2,11 +2,12 @@ from pathlib import Path
 import shutil, subprocess, tempfile, unittest
 ROOT = Path(__file__).resolve().parents[1]
 class ConnectTraceTests(unittest.TestCase):
-    def test_actual_algorithm_brackets_calls_and_handles_enumeration_failure(self):
-        cc = shutil.which('cc')
-        if not cc: self.skipTest('C compiler unavailable')
-        header = (ROOT/'platforms/j413/mu/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/J413ConnectTrace.h').read_text().replace('#include <Library/DxeServicesTableLib.h>', '')
-        source = r'''
+    def test_actual_targeted_binding_ignores_unrelated_controllers_and_preserves_errors(self):
+        cc=shutil.which('cc')
+        if not cc:self.skipTest('C compiler unavailable')
+        header=(ROOT/'platforms/j413/mu/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/J413ConnectTrace.h').read_text()
+        header='\n'.join(line for line in header.splitlines() if not line.startswith('#include'))
+        source=r'''
 #include <assert.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -15,42 +16,39 @@ class ConnectTraceTests(unittest.TestCase):
 #define VOID void
 #define TRUE 1
 #define FALSE 0
+#define ByProtocol 1
+#define EFI_NOT_FOUND 2
+#define EFI_SUCCESS 0
 #define EFI_ERROR(x) ((x)!=0)
-#define AllHandles 0
-typedef int EFI_STATUS; typedef size_t UINTN; typedef void *EFI_HANDLE; typedef wchar_t CHAR16;
+typedef int EFI_STATUS;typedef size_t UINTN;typedef void *EFI_HANDLE;typedef wchar_t CHAR16;typedef int EFI_GUID;
+typedef struct {const EFI_GUID *Type;} NON_DISCOVERABLE_DEVICE;
 typedef struct {int value;} EFI_DEVICE_PATH_PROTOCOL;
-static int calls,console_entries,console_returns,controller_entries,controller_returns,dispatch_entries,dispatch_returns,free_count,enumeration_failure;
-static void Print(const wchar_t *format, ...) {
- if(wcsstr(format,L"consoles entered")) console_entries++;
- if(wcsstr(format,L"consoles returned")) console_returns++;
- if(wcsstr(format,L"handle %p entered")) controller_entries++;
- if(wcsstr(format,L"controller %u returned")) controller_returns++;
- if(wcsstr(format,L"dispatch entered")) dispatch_entries++;
- if(wcsstr(format,L"dispatch returned")) dispatch_returns++;
-}
-static void EfiBootManagerConnectAllDefaultConsoles(void){assert(console_entries==console_returns+1);calls++;}
-static EFI_STATUS locate(int type,void *guid,void *key,UINTN *count,EFI_HANDLE **out){
- assert(type==AllHandles&&!guid&&!key);if(enumeration_failure)return 7;
- *count=2;*out=malloc(2*sizeof(EFI_HANDLE));(*out)[0]=(void*)1;(*out)[1]=(void*)2;return 0;}
-static EFI_STATUS connect(EFI_HANDLE handle,void *driver,void *path,int recursive){
- assert(!driver&&!path&&recursive);assert(controller_entries==controller_returns+1);calls++;return handle==(void*)1?0:7;}
-static EFI_STATUS dispatch(void){assert(dispatch_entries==dispatch_returns+1);calls++;return dispatch_entries==1?0:7;}
+static EFI_GUID gEdkiiNonDiscoverableDeviceProtocolGuid=1,gEdkiiNonDiscoverableXhciDeviceGuid=2,other_guid=3;
+static NON_DISCOVERABLE_DEVICE devices[4];
+static int entered,returned,free_count,connect_count,enumeration_fail,protocol_fail,protocol_null,connect_fail;
+static void Print(const wchar_t *s,...){if(wcsstr(s,L"controller %p entered"))entered++;if(wcsstr(s,L"controller returned"))returned++;}
+static int CompareGuid(const EFI_GUID *a,const EFI_GUID *b){return *a==*b;}
+static EFI_STATUS locate(int type,EFI_GUID *guid,void *key,UINTN *count,EFI_HANDLE **out){
+ assert(type==ByProtocol&&guid==&gEdkiiNonDiscoverableDeviceProtocolGuid&&!key);if(enumeration_fail)return 7;
+ *count=4;*out=malloc(4*sizeof(EFI_HANDLE));for(int i=0;i<4;i++)(*out)[i]=(void*)(uintptr_t)(i+1);return 0;}
+static EFI_STATUS protocol(EFI_HANDLE h,EFI_GUID *guid,void **out){assert(guid==&gEdkiiNonDiscoverableDeviceProtocolGuid);if(protocol_fail)return 7;*out=protocol_null?NULL:&devices[(uintptr_t)h-1];return 0;}
+static EFI_STATUS connect(EFI_HANDLE h,void *drivers,void *path,int recursive){assert(h==(void*)3&&!drivers&&!path&&recursive);assert(entered==returned+1);connect_count++;return connect_fail?7:0;}
 static EFI_DEVICE_PATH_PROTOCOL path;
-static EFI_DEVICE_PATH_PROTOCOL *DevicePathFromHandle(EFI_HANDLE h){return h==(void*)1?&path:NULL;}
+static EFI_DEVICE_PATH_PROTOCOL *DevicePathFromHandle(EFI_HANDLE h){assert(h==(void*)3);return &path;}
 static CHAR16 *ConvertDevicePathToText(EFI_DEVICE_PATH_PROTOCOL *p,int display,int shortcuts){assert(p==&path&&!display&&!shortcuts);return calloc(2,sizeof(CHAR16));}
 static void FreePool(void *p){assert(p);free_count++;free(p);}
-static struct {EFI_STATUS (*LocateHandleBuffer)(int,void*,void*,UINTN*,EFI_HANDLE**); EFI_STATUS (*ConnectController)(EFI_HANDLE,void*,void*,int);} bs={locate,connect};
-static struct {EFI_STATUS (*Dispatch)(void);} ds={dispatch};
+static struct {EFI_STATUS (*LocateHandleBuffer)(int,EFI_GUID*,void*,UINTN*,EFI_HANDLE**);EFI_STATUS (*HandleProtocol)(EFI_HANDLE,EFI_GUID*,void**);EFI_STATUS (*ConnectController)(EFI_HANDLE,void*,void*,int);} bs={locate,protocol,connect};
 #define gBS (&bs)
-#define gDS (&ds)
 ''' + header + r'''
-int main(void){
- J413ConnectAll();assert(calls==8&&console_entries==2&&console_returns==2&&controller_entries==4&&controller_returns==4&&dispatch_entries==2&&dispatch_returns==2&&free_count==4);
- calls=console_entries=console_returns=controller_entries=controller_returns=dispatch_entries=dispatch_returns=free_count=0;enumeration_failure=1;
- J413ConnectAll();assert(calls==1&&console_entries==1&&console_returns==1&&!controller_entries&&!dispatch_entries&&!free_count);return 0;
-}
+static void reset(void){entered=returned=free_count=connect_count=enumeration_fail=protocol_fail=protocol_null=connect_fail=0;devices[0].Type=&other_guid;devices[1].Type=NULL;devices[2].Type=&gEdkiiNonDiscoverableXhciDeviceGuid;devices[3].Type=&other_guid;}
+int main(void){reset();assert(J413ConnectBootUsb()==0&&entered==1&&returned==1&&connect_count==1&&free_count==2);
+ reset();enumeration_fail=1;assert(J413ConnectBootUsb()==7&&!connect_count&&!free_count);
+ reset();protocol_fail=1;assert(J413ConnectBootUsb()==EFI_NOT_FOUND&&!connect_count&&free_count==1);
+ reset();protocol_null=1;assert(J413ConnectBootUsb()==EFI_NOT_FOUND&&!connect_count&&free_count==1);
+ reset();devices[2].Type=&other_guid;assert(J413ConnectBootUsb()==EFI_NOT_FOUND&&!connect_count&&free_count==1);
+ reset();connect_fail=1;assert(J413ConnectBootUsb()==7&&entered==1&&returned==1&&free_count==2);return 0;}
 '''
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d);(p/'test.c').write_text(source)
-            subprocess.run([cc,'-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',str(p/'test.c'),'-o',str(p/'test')],check=True)
-            subprocess.run([str(p/'test')],check=True)
+            p=Path(d);(p/'t.c').write_text(source)
+            subprocess.run([cc,'-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',str(p/'t.c'),'-o',str(p/'t')],check=True)
+            subprocess.run([str(p/'t')],check=True)

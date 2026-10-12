@@ -48,7 +48,7 @@ static int Print(const wchar_t *s,...){if(!wcscmp(s,L"UEFI TRACE: Setup selector
 static int free_count,connects,locate_fail,init_fail,path_fail,init_count,probe_null;
 static MEDIA media[3];static EFI_BLOCK_IO_PROTOCOL block[3];static EFI_SIMPLE_FILE_SYSTEM_PROTOCOL fs[3];
 static void FreePool(void *p){assert(p);free_count++;free(p);}
-static void J413ConnectAll(void){assert(connection_banner==connects+1);connects++;}
+static EFI_STATUS J413ConnectBootUsb(void){assert(connection_banner==connects+1);connects++;return EFI_SUCCESS;}
 static int HasCompleteSetupMedia(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *p){return p->complete;}
 static EFI_STATUS locate(int type,int *guid,void *key,UINTN *count,EFI_HANDLE **out){
  (void)type;(void)guid;(void)key;if(locate_fail)return EFI_NOT_FOUND;

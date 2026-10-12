@@ -1,48 +1,39 @@
-/** @file J413 console diagnostics for the UefiBootManagerLib ConnectAll algorithm.
-  Derived from MdeModulePkg/Library/UefiBootManagerLib/BmConnect.c.
-  Copyright (c) 2011 - 2018, Intel Corporation. All rights reserved.
+/** @file Connect the J413 external Setup storage through normal UEFI driver binding.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 #ifndef J413_CONNECT_TRACE_H
 #define J413_CONNECT_TRACE_H
-#include <Library/DxeServicesTableLib.h>
+#include <Protocol/NonDiscoverableDevice.h>
+#include <Guid/NonDiscoverableDevice.h>
 
-STATIC VOID J413ConnectAll(VOID)
+STATIC EFI_STATUS J413ConnectBootUsb(VOID)
 {
-  EFI_STATUS Status;
-  UINTN Pass = 0;
-  Print(L"UEFI CONNECT: initial consoles entered\r\n");
-  EfiBootManagerConnectAllDefaultConsoles();
-  Print(L"UEFI CONNECT: initial consoles returned\r\n");
-  do {
-    EFI_HANDLE *Handles = NULL;
-    UINTN Count = 0;
-    Status = gBS->LocateHandleBuffer(AllHandles, NULL, NULL, &Count, &Handles);
-    Print(L"UEFI CONNECT: pass %u enumeration %r; handles %u\r\n", Pass, Status, Count);
-    if (EFI_ERROR(Status)) {
-      if (Handles != NULL) FreePool(Handles);
-      return;
-    }
-    for (UINTN Index = 0; Index < Count; Index++) {
-      EFI_DEVICE_PATH_PROTOCOL *Path = DevicePathFromHandle(Handles[Index]);
-      CHAR16 *Text = Path == NULL ? NULL : ConvertDevicePathToText(Path, FALSE, FALSE);
-      Print(L"UEFI CONNECT: pass %u controller %u/%u handle %p entered\r\n",
-            Pass, Index + 1, Count, Handles[Index]);
-      if (Text != NULL) {
-        Print(L"UEFI CONNECT: path %s\r\n", Text);
-        FreePool(Text);
-      }
-      Status = gBS->ConnectController(Handles[Index], NULL, NULL, TRUE);
-      Print(L"UEFI CONNECT: controller %u returned %r\r\n", Index + 1, Status);
-    }
+  EFI_HANDLE *Handles = NULL;
+  UINTN Count = 0;
+  EFI_STATUS Result = EFI_NOT_FOUND;
+  EFI_STATUS Status = gBS->LocateHandleBuffer(ByProtocol,
+      &gEdkiiNonDiscoverableDeviceProtocolGuid, NULL, &Count, &Handles);
+  if (EFI_ERROR(Status)) {
     if (Handles != NULL) FreePool(Handles);
-    Print(L"UEFI CONNECT: DXE dispatch entered\r\n");
-    Status = gDS->Dispatch();
-    Print(L"UEFI CONNECT: DXE dispatch returned %r\r\n", Status);
-    Pass++;
-  } while (!EFI_ERROR(Status));
-  Print(L"UEFI CONNECT: final consoles entered\r\n");
-  EfiBootManagerConnectAllDefaultConsoles();
-  Print(L"UEFI CONNECT: final consoles returned\r\n");
+    return Status;
+  }
+  for (UINTN Index = 0; Index < Count; Index++) {
+    NON_DISCOVERABLE_DEVICE *Device = NULL;
+    Status = gBS->HandleProtocol(Handles[Index], &gEdkiiNonDiscoverableDeviceProtocolGuid,
+                                (VOID **)&Device);
+    if (EFI_ERROR(Status) || Device == NULL || Device->Type == NULL ||
+        !CompareGuid(Device->Type, &gEdkiiNonDiscoverableXhciDeviceGuid)) continue;
+    // The J413 platform registers only USB1, after checked core/DART initialization.
+    // Recursive binding includes its PCI-I/O bridge, host, USB bus and storage children.
+    EFI_DEVICE_PATH_PROTOCOL *Path = DevicePathFromHandle(Handles[Index]);
+    CHAR16 *Text = Path == NULL ? NULL : ConvertDevicePathToText(Path, FALSE, FALSE);
+    Print(L"UEFI CONNECT: boot USB controller %p entered\r\n", Handles[Index]);
+    if (Text != NULL) { Print(L"UEFI CONNECT: path %s\r\n", Text); FreePool(Text); }
+    Status = gBS->ConnectController(Handles[Index], NULL, NULL, TRUE);
+    Print(L"UEFI CONNECT: boot USB controller returned %r\r\n", Status);
+    if (!EFI_ERROR(Status) || Result != EFI_SUCCESS) Result = Status;
+  }
+  if (Handles != NULL) FreePool(Handles);
+  return Result;
 }
 #endif

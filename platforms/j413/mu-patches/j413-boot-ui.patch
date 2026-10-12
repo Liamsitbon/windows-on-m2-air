@@ -14,7 +14,7 @@ index ad72599..e0d1fc3 100644
    DEBUG(
        (EFI_D_INFO,
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
-index 3e117b1..de5beef 100644
+index 3e117b1..3c62e84 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.c
 @@ -1,10 +1,11 @@
@@ -174,7 +174,7 @@ index 3e117b1..de5beef 100644
 +  // Called by BDS at TPL_APPLICATION, never from a notification callback.
 +  J413LogStatus("J413 EFI phase log; not complete UART/kernel log", EFI_SUCCESS);
 +  if (gST->ConOut != NULL) Print(L"UEFI TRACE: Setup selector entered; connecting controllers\r\n");
-+  J413ConnectAll();
++  Status = J413ConnectBootUsb();
 +  if (gST->ConOut != NULL) Print(L"UEFI TRACE: controller connection returned\r\n");
 +  {
 +    J413_USB_DART_READY *Ready = NULL;
@@ -182,7 +182,7 @@ index 3e117b1..de5beef 100644
 +    J413LogStatus("USB DART readiness protocol", Probe);
 +    if (!EFI_ERROR(Probe) && Ready != NULL) J413LogCount("DART controller mask", Ready->ControllerMask);
 +  }
-+  J413Checkpoint("controller connection completed", EFI_SUCCESS);
++  J413Checkpoint("USB boot connection result", Status);
 +  Status = gBS->LocateHandleBuffer(ByProtocol, &gEfiSimpleFileSystemProtocolGuid,
 +                                  NULL, &Count, &Handles);
 +  if (EFI_ERROR(Status)) {
@@ -249,10 +249,10 @@ index 3e117b1..de5beef 100644
 +#endif
  }
 diff --git a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
-index 3860c33..43e990f 100644
+index 3860c33..921d6f2 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
 +++ b/Silicon/Apple/AppleSiliconPkg/Drivers/WindowsAutoBootDxe/WindowsAutoBootDxe.inf
-@@ -11,15 +11,24 @@
+@@ -11,20 +11,30 @@
  
  [Packages]
    MdePkg/MdePkg.dec
@@ -265,18 +265,24 @@ index 3860c33..43e990f 100644
    DevicePathLib
    MemoryAllocationLib
 +  UefiBootManagerLib
-+  DxeServicesTableLib
 +  PrintLib
 +  BaseMemoryLib
 +  UefiLib
    DebugLib
  
  [Protocols]
++  gEdkiiNonDiscoverableDeviceProtocolGuid        ## CONSUMES
 +  gJ413UsbDartReadyProtocolGuid                  ## CONSUMES
 +  gJ413WindowsSetupProtocolGuid                  ## PRODUCES
    gEfiSimpleFileSystemProtocolGuid              ## CONSUMES
    gEfiBlockIoProtocolGuid                       ## CONSUMES
    gEfiLoadedImageProtocolGuid                   ## CONSUMES
+ 
+ [Guids]
++  gEdkiiNonDiscoverableXhciDeviceGuid
+   gEfiEventReadyToBootGuid
+ 
+ [Depex]
 diff --git a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c b/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
 index b2b1dd9..569c04d 100644
 --- a/Silicon/Apple/AppleSiliconPkg/Library/DeviceBootManagerLib/DeviceBootManagerLib.c
